@@ -16,24 +16,28 @@ const connectDB = async () => {
 
 const seedAdmin = async () => {
   try {
+    // Get admin credentials from environment variables
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@dhs.com';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@123456';
+    const ADMIN_NAME = process.env.ADMIN_NAME || 'System Admin';
+    const ADMIN_PHONE = process.env.ADMIN_PHONE || '+880 1700-000000';
+    
     // Check if admin already exists
-    const adminExists = await User.findOne({ email: 'temp.admin@dhs.com' });
+    const adminExists = await User.findOne({ email: ADMIN_EMAIL });
     
     if (adminExists) {
-      console.log('⚠️  Temporary admin user already exists!');
-      console.log('Email: temp.admin@dhs.com');
+      console.log('⚠️  Admin user already exists!');
+      console.log(`Email: ${ADMIN_EMAIL}`);
       console.log('-----------------------------------');
-      console.log('⚠️  IMPORTANT: This is a TEMPORARY admin account!');
-      console.log('⚠️  Create a permanent admin and DELETE this account immediately!');
       return;
     }
 
-    // Create TEMPORARY admin user - TO BE DELETED AFTER SETUP
+    // Create admin user from environment variables
     const admin = await User.create({
-      name: 'TEMPORARY ADMIN - DELETE ME',
-      email: 'temp.admin@dhs.com',
-      password: 'TempAdmin@2024!Setup', // Strong temporary password
-      phone: '+880 1700-000000',
+      name: ADMIN_NAME,
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+      phone: ADMIN_PHONE,
       role: 'admin',
       isVerified: true,
       permissions: {
@@ -52,22 +56,19 @@ const seedAdmin = async () => {
       }
     });
 
-    console.log('✅ TEMPORARY Admin created!');
+    console.log('✅ Admin user created successfully!');
     console.log('═══════════════════════════════════════════════════════');
-    console.log('🔐 TEMPORARY ADMIN CREDENTIALS (FOR INITIAL SETUP ONLY)');
+    console.log('🔐 ADMIN CREDENTIALS');
     console.log('═══════════════════════════════════════════════════════');
-    console.log('Email:    temp.admin@dhs.com');
-    console.log('Password: TempAdmin@2024!Setup');
+    console.log(`Email:    ${ADMIN_EMAIL}`);
+    console.log(`Password: ${ADMIN_PASSWORD}`);
     console.log('═══════════════════════════════════════════════════════');
     console.log('');
-    console.log('⚠️  SECURITY WARNING - CRITICAL STEPS:');
+    console.log('📝 IMPORTANT NOTES:');
     console.log('1. Login at: http://localhost:3000/admin/login');
-    console.log('2. Go to "Manage Admins" immediately');
-    console.log('3. Create YOUR permanent admin account with strong password');
-    console.log('4. DELETE this temporary admin account (temp.admin@dhs.com)');
-    console.log('5. NEVER use this temporary account in production!');
-    console.log('');
-    console.log('⚠️  This account is a SECURITY RISK if not deleted!');
+    console.log('2. Change your password immediately after first login');
+    console.log('3. Store credentials securely');
+    console.log('4. For production, use strong unique password');
     console.log('═══════════════════════════════════════════════════════');
     
   } catch (error) {
