@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 
@@ -23,7 +23,12 @@ const BookService = () => {
 
   const fetchService = async () => {
     try {
-      const { data } = await api.get(`/services/${serviceId}`);
+      const { data, error } = await servicesAPI.getById(serviceId);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setService(data);
     } catch (error) {
       toast.error('Error loading service');
@@ -56,14 +61,14 @@ const BookService = () => {
         bookingData.append('prescription', formData.prescription);
       }
 
-      const { data: booking } = await api.post('/bookings', bookingData, {
+      const { data: booking } = await bookingsAPI.create(bookingData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
 
       toast.success('Booking created successfully!');
-      navigate(`/patient/payment/${booking._id}`);
+      navigate(`/patient/payment/${booking.id}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error creating booking');
     } finally {

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/supabaseAPI';
+import { useAuth } from '../../context/SupabaseAuthContext';
 import { 
   FaArrowLeft, 
   FaPaperPlane, 
@@ -36,7 +36,12 @@ const TicketDetails = () => {
 
   const fetchTicket = async () => {
     try {
-      const { data } = await api.get(`/support/tickets/${id}`);
+      const { data, error } = await supportAPI.getById(id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setTicket(data.ticket);
     } catch (error) {
       toast.error('Failed to load ticket');
@@ -152,7 +157,7 @@ const TicketDetails = () => {
                   <span>•</span>
                   <span>Category: {ticket.category}</span>
                   <span>•</span>
-                  <span>Created {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                  <span>Created {new Date(ticket.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -178,8 +183,8 @@ const TicketDetails = () => {
               <>
                 {ticket.messages.map((msg, idx) => {
                   // Check if this message is from the current user
-                  const senderId = typeof msg.sender === 'object' ? msg.sender?._id : msg.sender;
-                  const currentUserId = user?._id;
+                  const senderId = typeof msg.sender === 'object' ? msg.sender?.id : msg.sender;
+                  const currentUserId = user?.id;
                   const isMyMessage = senderId?.toString() === currentUserId?.toString();
                   const senderPhoto = isMyMessage ? user?.profilePicture : msg.sender?.profilePicture;
                   const senderName = isMyMessage ? 'You' : (msg.sender?.name || 'Support Team');
@@ -212,7 +217,7 @@ const TicketDetails = () => {
                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                           </div>
                           <p className="text-xs text-gray-500 mt-1 px-2">
-                            {new Date(msg.createdAt).toLocaleString()}
+                            {new Date(msg.created_at).toLocaleString()}
                           </p>
                         </div>
                       </div>

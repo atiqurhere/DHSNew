@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import { FaUserPlus, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaStar, FaTelegram } from 'react-icons/fa';
 
 const ManageTelegramAgents = () => {
@@ -20,7 +20,7 @@ const ManageTelegramAgents = () => {
 
   const fetchAgents = async () => {
     try {
-      const response = await api.get('/telegram/agents');
+      const response = await api.telegram.getAgents();
       setAgents(response.data.agents || []);
     } catch (error) {
       toast.error('Failed to fetch agents');
@@ -34,8 +34,8 @@ const ManageTelegramAgents = () => {
       setEditingAgent(agent);
       setFormData({
         name: agent.name,
-        telegramUserId: agent.telegramUserId,
-        telegramUsername: agent.telegramUsername
+        telegramUserId: agent.telegram_user_id,
+        telegramUsername: agent.telegram_username
       });
     } else {
       setEditingAgent(null);
@@ -74,17 +74,23 @@ const ManageTelegramAgents = () => {
     }
 
     try {
+      let result;
       if (editingAgent) {
-        await api.put(`/telegram/agents/${editingAgent._id}`, formData);
+        result = await api.telegram.updateAgent(editingAgent.id, formData);
         toast.success('Agent updated successfully');
       } else {
-        await api.post('/telegram/agents', formData);
+        result = await api.telegram.addAgent(formData);
         toast.success('Agent added successfully');
       }
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
       fetchAgents();
       handleCloseModal();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save agent');
+      toast.error(error.message || 'Failed to save agent');
     }
   };
 
@@ -94,21 +100,27 @@ const ManageTelegramAgents = () => {
     }
 
     try {
-      await api.delete(`/telegram/agents/${agentId}`);
+      const result = await api.telegram.deleteAgent(agentId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       toast.success('Agent deleted successfully');
       fetchAgents();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete agent');
+      toast.error(error.message || 'Failed to delete agent');
     }
   };
 
   const toggleAgentStatus = async (agentId, currentStatus) => {
     try {
-      await api.put(`/telegram/agents/${agentId}`, { isActive: !currentStatus });
+      const result = await api.telegram.toggleAgentStatus(agentId, !currentStatus);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       toast.success(`Agent ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
       fetchAgents();
     } catch (error) {
-      toast.error('Failed to update agent status');
+      toast.error(error.message || 'Failed to update agent status');
     }
   };
 
@@ -181,7 +193,7 @@ const ManageTelegramAgents = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {agents.map((agent) => (
-                    <tr key={agent._id} className="hover:bg-gray-50">
+                    <tr key={agent.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{agent.name}</div>
@@ -195,15 +207,15 @@ const ManageTelegramAgents = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          onClick={() => toggleAgentStatus(agent._id, agent.isActive)}
+                          onClick={() => toggleAgentStatus(agent.id, agent.is_active)}
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                            agent.isActive
+                            agent.is_active
                               ? 'bg-green-100 text-green-800 hover:bg-green-200'
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
                           } transition-colors`}
                         >
-                          {agent.isActive ? <FaCheckCircle /> : <FaTimesCircle />}
-                          {agent.isActive ? 'Active' : 'Inactive'}
+                          {agent.is_active ? <FaCheckCircle /> : <FaTimesCircle />}
+                          {agent.is_active ? 'Active' : 'Inactive'}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -243,7 +255,7 @@ const ManageTelegramAgents = () => {
                             <FaEdit />
                           </button>
                           <button
-                            onClick={() => handleDelete(agent._id)}
+                            onClick={() => handleDelete(agent.id)}
                             className="text-red-600 hover:text-red-900"
                             title="Delete"
                           >

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/api';
+import { toast } from 'react-toastify';
+import api from '../utils/supabaseAPI';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { FaUsers, FaUserNurse, FaHeartbeat, FaCalendar, FaCheckCircle } from 'react-icons/fa';
 
@@ -13,7 +14,12 @@ const About = () => {
 
   const fetchAboutContent = async () => {
     try {
-      const { data } = await api.get('/pages/about');
+      const { data, error } = await pagesAPI.getBySlug("about");
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setSections(data.sections);
     } catch (error) {
       console.error('Error fetching about page:', error);
@@ -37,7 +43,7 @@ const About = () => {
     switch (section.type) {
       case 'hero':
         return (
-          <div key={section._id} className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-20">
+          <div key={section.id} className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-20">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto text-center">
                 <h1 className="text-5xl font-bold mb-6 animate-fadeIn">{section.title}</h1>
@@ -50,7 +56,7 @@ const About = () => {
       case 'mission':
       case 'vision':
         return (
-          <div key={section._id} className="py-16 bg-white">
+          <div key={section.id} className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
@@ -67,7 +73,7 @@ const About = () => {
 
       case 'values':
         return (
-          <div key={section._id} className="py-16 bg-gray-50">
+          <div key={section.id} className="py-16 bg-gray-50">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-12">
@@ -91,7 +97,7 @@ const About = () => {
 
       case 'stats':
         return (
-          <div key={section._id} className="py-20 bg-primary-600 text-white">
+          <div key={section.id} className="py-20 bg-primary-600 text-white">
             <div className="container mx-auto px-4">
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold mb-4">{section.title}</h2>
@@ -114,7 +120,7 @@ const About = () => {
 
       case 'team':
         return (
-          <div key={section._id} className="py-16 bg-white">
+          <div key={section.id} className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold text-gray-800 mb-4">{section.title}</h2>
@@ -145,7 +151,7 @@ const About = () => {
 
       case 'custom':
         return (
-          <div key={section._id} className="py-16 bg-gray-50">
+          <div key={section.id} className="py-16 bg-gray-50">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-12">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import { toast } from 'react-toastify';
@@ -28,7 +28,12 @@ const ManageServices = () => {
 
   const fetchServices = async () => {
     try {
-      const { data } = await api.get('/services');
+      const { data, error } = await servicesAPI.getAll();
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setServices(data);
     } catch (error) {
       toast.error('Error fetching services');
@@ -56,10 +61,10 @@ const ManageServices = () => {
       };
 
       if (editingService) {
-        await api.put(`/services/${editingService._id}`, dataToSend);
+        await servicesAPI.update(editingService.id, dataToSend);
         toast.success('Service updated successfully');
       } else {
-        await api.post('/services', dataToSend);
+        await servicesAPI.create(dataToSend);
         toast.success('Service created successfully');
       }
       setIsModalOpen(false);
@@ -89,7 +94,7 @@ const ManageServices = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
       try {
-        await api.delete(`/services/${id}`);
+        await servicesAPI.delete(id);
         toast.success('Service deleted successfully');
         fetchServices();
       } catch (error) {
@@ -100,7 +105,7 @@ const ManageServices = () => {
 
   const toggleAvailability = async (service) => {
     try {
-      await api.put(`/services/${service._id}`, {
+      await servicesAPI.update(service.id, {
         ...service,
         isAvailable: !service.isAvailable
       });
@@ -151,7 +156,7 @@ const ManageServices = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service) => (
-          <div key={service._id} className="card hover:shadow-xl transition-all duration-300">
+          <div key={service.id} className="card hover:shadow-xl transition-all duration-300">
             <div className="flex justify-between items-start mb-3">
               <h3 className="text-xl font-bold">{service.name}</h3>
               <button
@@ -195,7 +200,7 @@ const ManageServices = () => {
                 <span>Edit</span>
               </button>
               <button
-                onClick={() => handleDelete(service._id)}
+                onClick={() => handleDelete(service.id)}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition flex items-center justify-center space-x-1"
               >
                 <FaTrash />

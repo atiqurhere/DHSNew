@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { FaCalendar, FaClipboardList, FaHeart } from 'react-icons/fa';
 
@@ -19,7 +20,12 @@ const PatientDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const { data } = await api.get('/bookings/my-bookings');
+      const { data, error } = await bookingsAPI.getByUser(user.id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       
       setStats({
         upcoming: data.filter(b => ['pending', 'accepted', 'assigned', 'in-progress'].includes(b.status)).length,
@@ -121,7 +127,7 @@ const PatientDashboard = () => {
           {recentBookings.length > 0 ? (
             <div className="space-y-4">
               {recentBookings.map((booking) => (
-                <div key={booking._id} className="border-b pb-4 last:border-b-0">
+                <div key={booking.id} className="border-b pb-4 last:border-b-0">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-lg">{booking.service?.name}</h3>
@@ -139,7 +145,7 @@ const PatientDashboard = () => {
                         {booking.status}
                       </span>
                       <Link 
-                        to={`/patient/bookings/${booking._id}`}
+                        to={`/patient/bookings/${booking.id}`}
                         className="text-primary-600 hover:text-primary-700 text-sm font-medium"
                       >
                         View Details →

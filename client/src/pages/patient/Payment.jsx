@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 
@@ -22,7 +22,12 @@ const Payment = () => {
 
   const fetchBooking = async () => {
     try {
-      const { data } = await api.get(`/bookings/${bookingId}`);
+      const { data, error } = await bookingsAPI.getById(bookingId);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setBooking(data);
     } catch (error) {
       toast.error('Error loading booking');
@@ -44,8 +49,8 @@ const Payment = () => {
     setProcessing(true);
 
     try {
-      await api.post('/payments', {
-        bookingId: booking._id,
+      await paymentsAPI.create({
+        bookingId: booking.id,
         amount: booking.service.price,
         method: paymentData.method,
         paymentDetails: {

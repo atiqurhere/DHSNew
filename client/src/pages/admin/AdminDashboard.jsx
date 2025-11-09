@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { 
@@ -26,7 +26,12 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const { data } = await api.get('/admin/stats');
+      const { data, error } = await adminAPI.getStats();
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setStats(data);
     } catch (error) {
       toast.error('Error loading dashboard');
@@ -257,7 +262,7 @@ const AdminDashboard = () => {
             <div className="space-y-4">
               {stats.recentBookings && stats.recentBookings.length > 0 ? (
                 stats.recentBookings.map((booking) => (
-                  <div key={booking._id} className="border-b pb-4 last:border-b-0">
+                  <div key={booking.id} className="border-b pb-4 last:border-b-0">
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold">{booking.service?.name}</h3>
@@ -265,7 +270,7 @@ const AdminDashboard = () => {
                           Patient: {booking.patient?.name}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {new Date(booking.createdAt).toLocaleString()}
+                          {new Date(booking.created_at).toLocaleString()}
                         </p>
                       </div>
                       <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">

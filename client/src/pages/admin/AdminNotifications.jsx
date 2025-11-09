@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaBell, FaCheckDouble, FaTrash, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaUserTie, FaShoppingCart, FaUsers } from 'react-icons/fa';
@@ -15,7 +15,12 @@ const AdminNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data } = await api.get('/notifications');
+      const { data, error } = await notificationsAPI.getByUser(user.id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setNotifications(data);
     } catch (error) {
       toast.error('Error fetching notifications');
@@ -26,9 +31,9 @@ const AdminNotifications = () => {
 
   const markAsRead = async (id) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await notificationsAPI.markAsRead(id);
       setNotifications(notifications.map(n => 
-        n._id === id ? { ...n, isRead: true } : n
+        n.id === id ? { ...n, isRead: true } : n
       ));
       toast.success('Notification marked as read');
     } catch (error) {
@@ -38,7 +43,7 @@ const AdminNotifications = () => {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifications/read-all');
+      await notificationsAPI.markAllAsRead(user.id);
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
@@ -49,8 +54,8 @@ const AdminNotifications = () => {
   const deleteNotification = async (id) => {
     if (window.confirm('Are you sure you want to delete this notification?')) {
       try {
-        await api.delete(`/notifications/${id}`);
-        setNotifications(notifications.filter(n => n._id !== id));
+        await notificationsAPI.delete(id);
+        setNotifications(notifications.filter(n => n.id !== id));
         toast.success('Notification deleted');
       } catch (error) {
         toast.error('Error deleting notification');
@@ -62,7 +67,7 @@ const AdminNotifications = () => {
     if (window.confirm('Are you sure you want to delete all read notifications?')) {
       try {
         await api.delete('/notifications/read-all');
-        setNotifications(notifications.filter(n => !n.isRead));
+        setNotifications(notifications.filter(n => !n.is_read));
         toast.success('Read notifications deleted');
       } catch (error) {
         toast.error('Error deleting notifications');
@@ -111,12 +116,12 @@ const AdminNotifications = () => {
   };
 
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'unread') return !n.isRead;
-    if (filter === 'read') return n.isRead;
+    if (filter === 'unread') return !n.is_read;
+    if (filter === 'read') return n.is_read;
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
     return (
@@ -148,7 +153,7 @@ const AdminNotifications = () => {
                   <span className="hidden sm:inline">Mark All Read</span>
                 </button>
               )}
-              {notifications.some(n => n.isRead) && (
+              {notifications.some(n => n.is_read) && (
                 <button
                   onClick={deleteAllRead}
                   className="text-red-600 hover:text-red-700 border border-red-300 px-3 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-red-50 transition-all"
@@ -200,9 +205,9 @@ const AdminNotifications = () => {
           <div className="space-y-3 stagger-children">
             {filteredNotifications.map((notification) => (
               <div
-                key={notification._id}
+                key={notification.id}
                 className={`card ${getNotificationColor(notification.type)} ${
-                  !notification.isRead ? 'shadow-lg' : 'opacity-75'
+                  !notification.is_read ? 'shadow-lg' : 'opacity-75'
                 } transition-all duration-300 hover:shadow-xl`}
               >
                 <div className="flex items-start gap-4">
@@ -212,21 +217,21 @@ const AdminNotifications = () => {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className={`font-semibold ${!notification.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+                      <h3 className={`font-semibold ${!notification.is_read ? 'text-gray-900' : 'text-gray-600'}`}>
                         {notification.title}
                       </h3>
-                      {!notification.isRead && (
+                      {!notification.is_read && (
                         <span className="flex-shrink-0 w-2 h-2 bg-primary-600 rounded-full mt-2"></span>
                       )}
                     </div>
                     
-                    <p className={`text-sm mt-1 ${!notification.isRead ? 'text-gray-700' : 'text-gray-500'}`}>
+                    <p className={`text-sm mt-1 ${!notification.is_read ? 'text-gray-700' : 'text-gray-500'}`}>
                       {notification.message}
                     </p>
                     
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                       <span className="text-xs text-gray-500">
-                        {new Date(notification.createdAt).toLocaleDateString('en-US', {
+                        {new Date(notification.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
@@ -236,16 +241,16 @@ const AdminNotifications = () => {
                       </span>
                       
                       <div className="flex gap-2">
-                        {!notification.isRead && (
+                        {!notification.is_read && (
                           <button
-                            onClick={() => markAsRead(notification._id)}
+                            onClick={() => markAsRead(notification.id)}
                             className="text-xs text-primary-600 hover:text-primary-700 font-medium hover:underline"
                           >
                             Mark as read
                           </button>
                         )}
                         <button
-                          onClick={() => deleteNotification(notification._id)}
+                          onClick={() => deleteNotification(notification.id)}
                           className="text-xs text-red-600 hover:text-red-700 font-medium hover:underline"
                         >
                           Delete

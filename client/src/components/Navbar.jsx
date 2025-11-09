@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/SupabaseAuthContext';
 import { FaUserCircle, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
-import api from '../utils/api';
+import { notificationsAPI } from '../utils/supabaseAPI';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -13,26 +13,37 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
+      // Set up real-time subscription for notifications
+      const subscription = notificationsAPI.subscribe(user.id, () => {
+        fetchUnreadCount();
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [user]);
 
   const fetchUnreadCount = async () => {
     try {
-      const { data } = await api.get('/notifications');
-      const unread = data.filter(n => !n.isRead).length;
+      if (!user) return;
+      const { data, error } = await notificationsAPI.getByUser(user.id);
+      if (error) throw new Error(error);
+      const unread = data.filter(n => !n.is_read).length;
       setUnreadCount(unread);
     } catch (error) {
-      // Silently fail - don't log error for unauthenticated users
-      if (error.response?.status !== 401) {
-        console.error('Error fetching notifications:', error);
-      }
+      console.error('Error fetching notifications:', error);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setIsMenuOpen(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const getDashboardLink = () => {

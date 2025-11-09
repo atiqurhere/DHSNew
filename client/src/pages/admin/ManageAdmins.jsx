@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import { toast } from 'react-toastify';
@@ -31,7 +31,12 @@ const ManageAdmins = () => {
 
   const fetchAdmins = async () => {
     try {
-      const { data } = await api.get('/admin/admins');
+      const { data, error } = await adminAPI.getAllUsers().then(res => res.data?.filter(u => u.role === "admin") || []);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setAdmins(data);
     } catch (error) {
       toast.error('Error fetching admins');
@@ -64,7 +69,7 @@ const ManageAdmins = () => {
     e.preventDefault();
     try {
       if (editingAdmin) {
-        await api.put(`/admin/admins/${editingAdmin._id}`, formData);
+        await api.put(`/admin/admins/${editingAdmin.id}`, formData);
         toast.success('Admin updated successfully');
       } else {
         const response = await api.post('/admin/admins', formData);
@@ -169,7 +174,7 @@ const ManageAdmins = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {admins.map((admin) => (
-                <tr key={admin._id} className="hover:bg-gray-50">
+                <tr key={admin.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <FaShieldAlt className="text-primary-600 mr-2" />
@@ -203,7 +208,7 @@ const ManageAdmins = () => {
                         <FaEdit size={18} />
                       </button>
                       <button
-                        onClick={() => handleDelete(admin._id)}
+                        onClick={() => handleDelete(admin.id)}
                         className="text-red-600 hover:text-red-800 transition"
                       >
                         <FaTrash size={18} />

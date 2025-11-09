@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import { 
   FaTicketAlt, 
   FaPlus, 
@@ -23,7 +23,12 @@ const Support = () => {
 
   const fetchTickets = async () => {
     try {
-      const { data } = await api.get('/support/tickets');
+      const { data, error } = await supportAPI.getByUser(user.id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setTickets(data.tickets || []);
     } catch (error) {
       toast.error('Failed to load tickets');
@@ -156,8 +161,8 @@ const Support = () => {
           <div className="space-y-4">
             {filteredTickets.map((ticket) => (
               <div
-                key={ticket._id}
-                onClick={() => navigate(`/support/tickets/${ticket._id}`)}
+                key={ticket.id}
+                onClick={() => navigate(`/support/tickets/${ticket.id}`)}
                 className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="p-6">
@@ -178,7 +183,7 @@ const Support = () => {
                         <span>•</span>
                         <span>{ticket.category}</span>
                         <span>•</span>
-                        <span>Created {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                        <span>Created {new Date(ticket.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     {ticket.assignedTo && (
@@ -197,7 +202,7 @@ const Support = () => {
                         {ticket.messages[ticket.messages.length - 1].message.length > 100 ? '...' : ''}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {new Date(ticket.messages[ticket.messages.length - 1].createdAt).toLocaleString()}
+                        {new Date(ticket.messages[ticket.messages.length - 1].created_at).toLocaleString()}
                       </p>
                     </div>
                   )}

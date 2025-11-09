@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaComments, FaTimes, FaPaperPlane, FaRobot, FaUser, FaUserTie } from 'react-icons/fa';
-import api from '../utils/api';
+import api from '../utils/supabaseAPI';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/SupabaseAuthContext';
 import { toast } from 'react-toastify';
 
 const Chatbot = () => {
@@ -83,9 +83,10 @@ const Chatbot = () => {
             if (storedUser) {
               try {
                 console.log('🔄 Attempting to restore session:', savedSessionId);
-                const { data } = await api.get(`/telegram/session/${savedSessionId}`);
+                const result = await api.telegram.getSession(savedSessionId);
                 
-                if (data && data.session) {
+                if (result.data && result.data.session) {
+                  const data = result.data;
                   if (data.session.status === 'connected' || data.session.status === 'waiting') {
                     // Session is still active - restore it!
                     console.log('✅ Session is active, restoring...');
@@ -240,8 +241,9 @@ const Chatbot = () => {
     
     pollingInterval.current = setInterval(async () => {
       try {
-        const { data } = await api.get(`/telegram/session/${sessionId}`);
-        if (data && data.session) {
+        const result = await api.telegram.getSession(sessionId);
+        if (result.data && result.data.session) {
+          const data = result.data;
           // Map server messages to chatbot format
           const sessionMessages = data.session.messages.map(msg => ({
             type: msg.sender === 'user' ? 'user' : msg.sender === 'agent' ? 'agent' : 'system',
@@ -288,8 +290,8 @@ const Chatbot = () => {
         }
       } catch (error) {
         console.error('Error polling session:', error);
-        // If session not found, end the agent mode
-        if (error.response?.status === 404) {
+        // If session not found or error, end the agent mode
+        if (error.message && error.message.includes('not found')) {
           stopPolling();
           setMessages(prev => [...prev, {
             type: 'system',
@@ -332,9 +334,7 @@ const Chatbot = () => {
     if (mode === 'agent' && sessionId) {
       // Send message to Telegram agent
       try {
-        await api.post(`/telegram/message/${sessionId}`, {
-          message: currentMessage
-        });
+        await api.telegram.sendMessage(sessionId, currentMessage, 'user');
         // Message will appear in next poll
       } catch (error) {
         toast.error('Failed to send message');
@@ -349,14 +349,14 @@ const Chatbot = () => {
       setIsTyping(true);
       try {
         // Get bot response
-        const { data } = await api.post('/chatbot/query', { message: currentMessage });
+        const result = await api.chatbot.getResponse(currentMessage);
         
         setTimeout(() => {
           const botMessage = {
             type: 'bot',
-            text: data.response,
+            text: result.data.response,
             timestamp: new Date(),
-            followUpOptions: data.followUpOptions
+            followUpOptions: result.data.followUpOptions
           };
           setMessages(prev => [...prev, botMessage]);
           setIsTyping(false);
@@ -396,7 +396,7 @@ const Chatbot = () => {
       console.log('Connecting to Telegram agent for user:', user);
       
       // Check agent availability first
-      const availabilityCheck = await api.get('/telegram/availability');
+      const availabilityCheck = await api.telegram.checkAvailability();
       
       if (!availabilityCheck.data.available) {
         setIsTyping(false);
@@ -414,33 +414,37 @@ const Chatbot = () => {
       }
       
       // Connect to available agent via Telegram
-      const { data } = await api.post('/telegram/connect');
+      const result = await api.telegram.connectToAgent(user.id);
       
-      console.log('Connected to Telegram agent:', data);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      console.log('Connected to Telegram agent:', result.data);
 
       // Save current bot conversation before switching to agent mode
       setBotMessages(messages);
       
-      setSessionId(data.sessionId);
-      setAgentName(data.agentName || 'Support Agent');
+      setSessionId(result.data.sessionId);
+      setAgentName(result.data.agentName || 'Support Agent');
       setMode('agent');
       
       // Keep previous bot conversation and add connection message
       setMessages(prev => [...prev, {
         type: 'system',
-        text: `Connected to ${data.agentName || 'our support agent'}. They will respond shortly.`,
+        text: `Connected to ${result.data.agentName || 'our support agent'}. They will respond shortly.`,
         timestamp: new Date()
       }]);
       setIsTyping(false);
       
-      toast.success(`Connected to ${data.agentName}!`);
+      toast.success(`Connected to ${result.data.agentName}!`);
       
       // Start polling for messages
       startPolling();
     } catch (error) {
       setIsTyping(false);
       console.error('Error connecting to agent:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to connect to agent. Please try again.';
+      const errorMsg = error.message || 'Failed to connect to agent. Please try again.';
       toast.error(errorMsg);
       
       // Show error in chat with ticket creation option
@@ -461,7 +465,7 @@ const Chatbot = () => {
     if (!sessionId) return;
     
     try {
-      await api.post(`/telegram/end/${sessionId}`);
+      await api.telegram.endSession(sessionId);
       stopPolling();
       
       // Keep all previous messages (bot + agent conversation) and add end message

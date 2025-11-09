@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/SupabaseAuthContext';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,7 +11,7 @@ const Login = () => {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user, login } = useAuth();
+  const { user, signIn, signOut } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -37,18 +38,28 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await login(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
+      
+      if (result.error) {
+        toast.error(result.error.message || 'Failed to sign in');
+        return;
+      }
+
+      // Get user profile to check role
+      const userProfile = result.user;
       
       // Check if user is admin - redirect to admin login
-      if (user.role === 'admin') {
+      if (userProfile.role === 'admin') {
         toast.error('Admins must use the Admin Login portal');
-        setLoading(false);
+        await signOut();
         navigate('/admin/login');
         return;
       }
+
+      toast.success('Signed in successfully!');
       
       // Redirect based on role
-      switch (user.role) {
+      switch (userProfile.role) {
         case 'patient':
           navigate('/patient/dashboard');
           break;
@@ -59,7 +70,8 @@ const Login = () => {
           navigate('/');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Login error:', error);
+      toast.error(error.message || 'An error occurred during sign in');
     } finally {
       setLoading(false);
     }

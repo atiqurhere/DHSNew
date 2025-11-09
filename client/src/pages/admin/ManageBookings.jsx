@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import { toast } from 'react-toastify';
@@ -23,7 +23,12 @@ const ManageBookings = () => {
 
   const fetchBookings = async () => {
     try {
-      const { data } = await api.get('/admin/bookings');
+      const { data, error } = await bookingsAPI.getAll();
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setBookings(data);
     } catch (error) {
       toast.error('Error fetching bookings');
@@ -34,7 +39,12 @@ const ManageBookings = () => {
 
   const fetchStaff = async () => {
     try {
-      const { data } = await api.get('/admin/staff');
+      const { data, error } = await adminAPI.getAllUsers().then(res => res.data?.filter(u => u.role === "staff") || []);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setStaff(data.filter(s => s.verificationStatus === 'verified'));
     } catch (error) {
       console.error('Error fetching staff');
@@ -49,7 +59,7 @@ const ManageBookings = () => {
 
   const handleAssignStaff = (booking) => {
     setSelectedBooking(booking);
-    setSelectedStaffId(booking.assignedStaff?._id || '');
+    setSelectedStaffId(booking.assignedStaff?.id || '');
     setModalType('assignStaff');
     setIsModalOpen(true);
   };
@@ -64,7 +74,7 @@ const ManageBookings = () => {
   const submitAssignStaff = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin/bookings/${selectedBooking._id}/assign-staff`, {
+      await api.put(`/admin/bookings/${selectedBooking.id}/assign-staff`, {
         staffId: selectedStaffId
       });
       toast.success('Staff assigned successfully');
@@ -78,7 +88,7 @@ const ManageBookings = () => {
   const submitUpdateStatus = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin/bookings/${selectedBooking._id}/status`, {
+      await api.put(`/admin/bookings/${selectedBooking.id}/status`, {
         status: selectedStatus
       });
       toast.success('Booking status updated');
@@ -169,9 +179,9 @@ const ManageBookings = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredBookings.map((booking) => (
-              <tr key={booking._id} className="hover:bg-gray-50">
+              <tr key={booking.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  #{booking._id.slice(-6)}
+                  #{booking.id.slice(-6)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{booking.patient?.name}</div>
@@ -256,7 +266,7 @@ const ManageBookings = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="font-semibold text-sm text-gray-600">Booking ID</p>
-                <p className="text-base">#{selectedBooking._id.slice(-8)}</p>
+                <p className="text-base">#{selectedBooking.id.slice(-8)}</p>
               </div>
               <div>
                 <p className="font-semibold text-sm text-gray-600">Status</p>
@@ -349,7 +359,7 @@ const ManageBookings = () => {
               >
                 <option value="">Choose a staff member...</option>
                 {staff.map((member) => (
-                  <option key={member._id} value={member._id}>
+                  <option key={member.id} value={member.id}>
                     {member.name} - {member.specialization} ({member.rating ? `⭐${member.rating}` : 'No rating'})
                   </option>
                 ))}

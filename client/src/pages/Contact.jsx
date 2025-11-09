@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api from '../utils/supabaseAPI';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaAmbulance, FaTicketAlt } from 'react-icons/fa';
 
@@ -16,7 +17,12 @@ const Contact = () => {
 
   const fetchContactContent = async () => {
     try {
-      const { data } = await api.get('/pages/contact');
+      const { data, error } = await pagesAPI.getBySlug("contact");
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setSections(data.sections);
       
       // Extract contact info

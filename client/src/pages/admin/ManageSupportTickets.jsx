@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import { 
   FaTicketAlt, 
   FaClock, 
@@ -25,7 +25,12 @@ const ManageSupportTickets = () => {
   const fetchTickets = async () => {
     try {
       // Admin endpoint to get all tickets
-      const { data } = await api.get('/support/tickets/admin/all');
+      const { data, error } = await supportAPI.getAll();
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setTickets(data.tickets || []);
     } catch (error) {
       toast.error('Failed to load tickets');
@@ -216,7 +221,7 @@ const ManageSupportTickets = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map((ticket) => (
-                  <tr key={ticket._id} className="hover:bg-gray-50">
+                  <tr key={ticket.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -245,11 +250,11 @@ const ManageSupportTickets = () => {
                       {ticket.category}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(ticket.createdAt).toLocaleDateString()}
+                      {new Date(ticket.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
-                        onClick={() => navigate(`/admin/support-tickets/${ticket._id}`)}
+                        onClick={() => navigate(`/admin/support-tickets/${ticket.id}`)}
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-900"
                       >
                         <FaEye />

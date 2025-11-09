@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard';
-import api from '../utils/api';
-import { useAuth } from '../context/AuthContext';
+import { servicesAPI } from '../utils/supabaseAPI';
+import { useAuth } from '../context/SupabaseAuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { toast } from 'react-toastify';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -18,11 +19,18 @@ const Services = () => {
 
   const fetchServices = async () => {
     try {
-      const params = filter !== 'all' ? { category: filter } : {};
-      const { data } = await api.get('/services', { params });
-      setServices(data);
+      const { data, error } = await servicesAPI.getAll();
+      if (error) throw new Error(error);
+      
+      // Filter by category if needed
+      const filteredData = filter !== 'all' 
+        ? data.filter(s => s.category === filter)
+        : data;
+      
+      setServices(filteredData);
     } catch (error) {
       console.error('Error fetching services:', error);
+      toast.error('Failed to load services');
     } finally {
       setLoading(false);
     }
@@ -34,10 +42,10 @@ const Services = () => {
       return;
     }
     if (user.role !== 'patient') {
-      alert('Only patients can book services');
+      toast.error('Only patients can book services');
       return;
     }
-    navigate(`/patient/book-service/${service._id}`);
+    navigate(`/patient/book-service/${service.id}`);
   };
 
   const categories = [
@@ -84,7 +92,7 @@ const Services = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.map((service) => (
               <ServiceCard
-                key={service._id}
+                key={service.id}
                 service={service}
                 onBook={handleBookService}
               />

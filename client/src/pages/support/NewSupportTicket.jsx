@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import api from '../../utils/api';
+import { useAuth } from '../../context/SupabaseAuthContext';
+import api from '../../utils/supabaseAPI';
 import { toast } from 'react-toastify';
 import { FaTicketAlt, FaArrowLeft } from 'react-icons/fa';
 
@@ -46,9 +46,14 @@ const NewSupportTicket = () => {
 
     try {
       setLoading(true);
-      const { data } = await api.post('/support/tickets', formData);
+      const { data, error } = await supportAPI.create(formData);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       toast.success('Support ticket created successfully!');
-      navigate(`/support/tickets/${data.ticket._id}`);
+      navigate(`/support/tickets/${data.ticket.id}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create ticket');
     } finally {

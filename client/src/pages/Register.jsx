@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/SupabaseAuthContext';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -25,7 +26,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { user, register } = useAuth();
+  const { user, signUp } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -64,33 +65,36 @@ const Register = () => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     try {
       const { confirmPassword, ...dataToSend } = formData;
-      const user = await register(dataToSend);
+      const result = await signUp(dataToSend);
+      
+      if (result.error) {
+        toast.error(result.error.message || 'Failed to create account');
+        return;
+      }
       
       // Redirect based on role
-      if (user.role === 'staff' && !user.isVerified) {
-        alert('Your staff application has been submitted. Please wait for admin approval.');
+      if (dataToSend.role === 'staff') {
+        toast.success('Your staff application has been submitted. Please wait for admin approval before logging in.');
         navigate('/');
       } else {
-        switch (user.role) {
-          case 'patient':
-            navigate('/patient/dashboard');
-            break;
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          default:
-            navigate('/');
-        }
+        toast.success('Account created successfully! Please check your email to verify your account.');
+        navigate('/login');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Registration error:', error);
+      toast.error(error.message || 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
@@ -164,7 +168,7 @@ const Register = () => {
                 <label className="label">Staff Type</label>
                 <select
                   name="staffType"
-                  value={formData.staffType}
+                  value={formData.staff_type}
                   onChange={handleChange}
                   className="input-field"
                   required

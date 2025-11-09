@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { FaTasks, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -20,7 +20,12 @@ const StaffDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const { data } = await api.get('/bookings');
+      const { data, error } = await bookingsAPI.getAll();
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       
       setStats({
         assigned: data.filter(b => b.status === 'assigned').length,
@@ -107,7 +112,7 @@ const StaffDashboard = () => {
           {bookings.length > 0 ? (
             <div className="space-y-4">
               {bookings.map((booking) => (
-                <div key={booking._id} className="border rounded-lg p-4">
+                <div key={booking.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-semibold text-lg">{booking.service?.name}</h3>
@@ -142,7 +147,7 @@ const StaffDashboard = () => {
                   <div className="flex space-x-2">
                     {booking.status === 'assigned' && (
                       <button
-                        onClick={() => updateStatus(booking._id, 'in-progress')}
+                        onClick={() => updateStatus(booking.id, 'in-progress')}
                         className="btn-primary text-sm"
                       >
                         Start Task
@@ -150,7 +155,7 @@ const StaffDashboard = () => {
                     )}
                     {booking.status === 'in-progress' && (
                       <button
-                        onClick={() => updateStatus(booking._id, 'completed')}
+                        onClick={() => updateStatus(booking.id, 'completed')}
                         className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition"
                       >
                         Mark as Completed

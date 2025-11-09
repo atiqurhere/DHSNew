@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/SupabaseAuthContext';
 import { FaLock, FaEnvelope, FaShieldAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const AdminLogin = () => {
@@ -11,7 +11,7 @@ const AdminLogin = () => {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user, login } = useAuth();
+  const { user, signIn } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in as admin
@@ -33,19 +33,21 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const userData = await login(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
       
-      // Check if user is admin
-      if (userData.role !== 'admin') {
-        toast.error('Unauthorized: Admin access only');
+      if (result.error) {
+        toast.error(result.error.message || 'Invalid credentials');
         setLoading(false);
         return;
       }
 
+      // Check if user is admin - user data will be available after successful signIn
+      // The useEffect will handle redirect once user state is updated
       toast.success('Admin login successful!');
-      navigate('/admin/dashboard');
+      
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Invalid credentials');
+      console.error('Admin login error:', error);
+      toast.error(error.message || 'Invalid credentials');
       setLoading(false);
     }
   };

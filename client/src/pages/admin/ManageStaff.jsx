@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import { toast } from 'react-toastify';
@@ -20,7 +20,12 @@ const ManageStaff = () => {
 
   const fetchStaff = async () => {
     try {
-      const { data } = await api.get('/admin/staff');
+      const { data, error } = await adminAPI.getAllUsers().then(res => res.data?.filter(u => u.role === "staff") || []);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setStaff(data);
     } catch (error) {
       toast.error('Error fetching staff');
@@ -31,7 +36,7 @@ const ManageStaff = () => {
 
   const handleVerify = async (staffId) => {
     try {
-      await api.put(`/admin/staff/${staffId}/verify`);
+      await adminAPI.verifyStaff(staffId);
       toast.success('Staff verified successfully');
       fetchStaff();
     } catch (error) {
@@ -48,7 +53,7 @@ const ManageStaff = () => {
   const handleSubmitRejection = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin/staff/${selectedStaff._id}/reject`, {
+      await api.put(`/admin/staff/${selectedStaff.id}/reject`, {
         reason: rejectionReason
       });
       toast.success('Staff application rejected');
@@ -127,7 +132,7 @@ const ManageStaff = () => {
       {/* Staff Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredStaff.map((member) => (
-          <div key={member._id} className="card hover:shadow-xl transition-all duration-300">
+          <div key={member.id} className="card hover:shadow-xl transition-all duration-300">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
@@ -171,7 +176,7 @@ const ManageStaff = () => {
             {member.verificationStatus === 'pending' && (
               <div className="flex space-x-2 mb-3">
                 <button
-                  onClick={() => handleVerify(member._id)}
+                  onClick={() => handleVerify(member.id)}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded transition flex items-center justify-center space-x-1"
                 >
                   <FaCheckCircle />
@@ -195,7 +200,7 @@ const ManageStaff = () => {
                 View Details
               </button>
               <button
-                onClick={() => handleDelete(member._id)}
+                onClick={() => handleDelete(member.id)}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition flex items-center justify-center space-x-1"
               >
                 <FaTrash />

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/supabaseAPI';
+import { useAuth } from '../../context/SupabaseAuthContext';
 import { 
   FaArrowLeft, 
   FaPaperPlane, 
@@ -38,7 +38,12 @@ const AdminTicketDetails = () => {
 
   const fetchTicket = async () => {
     try {
-      const { data } = await api.get(`/support/tickets/${id}`);
+      const { data, error } = await supportAPI.getById(id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setTicket(data.ticket);
     } catch (error) {
       toast.error('Failed to load ticket');
@@ -158,7 +163,7 @@ const AdminTicketDetails = () => {
   }
 
   const isUserMessage = (msg) => {
-    return msg.sender?.toString() === ticket.user?._id?.toString();
+    return msg.sender?.toString() === ticket.user?.id?.toString();
   };
 
   return (
@@ -187,7 +192,7 @@ const AdminTicketDetails = () => {
                   <span>•</span>
                   <span>Category: {ticket.category}</span>
                   <span>•</span>
-                  <span>Created {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                  <span>Created {new Date(ticket.created_at).toLocaleDateString()}</span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <FaUser />
@@ -271,9 +276,9 @@ const AdminTicketDetails = () => {
               <>
                 {ticket.messages.map((msg, idx) => {
                   // Check if this message is from the current logged-in admin
-                  const senderId = typeof msg.sender === 'object' ? msg.sender?._id : msg.sender;
-                  const userId = typeof ticket.user === 'object' ? ticket.user?._id : ticket.user;
-                  const currentUserId = user?._id;
+                  const senderId = typeof msg.sender === 'object' ? msg.sender?.id : msg.sender;
+                  const userId = typeof ticket.user === 'object' ? ticket.user?.id : ticket.user;
+                  const currentUserId = user?.id;
                   const isMyMessage = senderId?.toString() === currentUserId?.toString();
                   const isUserMessage = senderId?.toString() === userId?.toString();
                   
@@ -317,7 +322,7 @@ const AdminTicketDetails = () => {
                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                           </div>
                           <p className="text-xs text-gray-500 mt-1 px-2">
-                            {new Date(msg.createdAt).toLocaleString()}
+                            {new Date(msg.created_at).toLocaleString()}
                           </p>
                         </div>
                       </div>

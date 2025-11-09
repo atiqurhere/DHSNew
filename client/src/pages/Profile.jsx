@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import { useAuth } from '../context/SupabaseAuthContext';
+import { uploadAPI, authAPI } from '../utils/supabaseAPI';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaCamera, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaSave, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Profile = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateProfile, updatePassword } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

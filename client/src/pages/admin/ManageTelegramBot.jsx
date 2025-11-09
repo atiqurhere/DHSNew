@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import { FaTelegram, FaSave, FaRobot, FaClock, FaUsers } from 'react-icons/fa';
 
 const ManageTelegramBot = () => {
@@ -29,16 +29,12 @@ const ManageTelegramBot = () => {
 
   const fetchConfig = async () => {
     try {
-      const response = await api.get('/telegram/config');
-      if (response.data.config) {
+      const response = await api.telegram.getConfig();
+      if (response.data && response.data.config) {
         setConfig(response.data.config);
       }
     } catch (error) {
-      if (error.response?.status === 404) {
-        toast.error('Telegram bot not configured yet');
-      } else {
-        toast.error('Failed to fetch bot configuration');
-      }
+      toast.error('Failed to fetch bot configuration');
     } finally {
       setLoading(false);
     }
@@ -46,7 +42,7 @@ const ManageTelegramBot = () => {
 
   const fetchAgents = async () => {
     try {
-      const response = await api.get('/telegram/agents');
+      const response = await api.telegram.getAgents();
       setAgents(response.data.agents || []);
     } catch (error) {
       console.error('Failed to fetch agents:', error);
@@ -56,16 +52,16 @@ const ManageTelegramBot = () => {
   const fetchStats = async () => {
     try {
       const [agentsRes, sessionsRes] = await Promise.all([
-        api.get('/telegram/agents'),
-        api.get('/telegram/sessions/all')
+        api.telegram.getAgents(),
+        api.telegram.getAllSessions()
       ]);
       
       const agentsList = agentsRes.data.agents || [];
       const sessionsList = sessionsRes.data.sessions || [];
       
       setStats({
-        totalAgents: agentsList.filter(a => a.isActive).length,
-        availableAgents: agentsList.filter(a => a.isActive && a.isAvailable).length,
+        totalAgents: agentsList.filter(a => a.is_active).length,
+        availableAgents: agentsList.filter(a => a.is_active && a.is_available).length,
         activeSessions: sessionsList.filter(s => s.status === 'connected').length
       });
     } catch (error) {
@@ -87,7 +83,7 @@ const ManageTelegramBot = () => {
     // Check if token is masked (starts with "...")
     const isMaskedToken = config.botToken && config.botToken.startsWith('...');
     
-    if ((!config.botToken || isMaskedToken) && !config._id) {
+    if ((!config.botToken || isMaskedToken) && !config.id) {
       toast.error('Bot token is required for new configuration');
       return;
     }
@@ -102,14 +98,24 @@ const ManageTelegramBot = () => {
       const payload = { ...config };
       // Don't send masked token back to server
       if (isMaskedToken) {
-        delete payload.botToken;
+        delete payload.bot_token;
+      } else {
+        payload.bot_token = config.botToken;
       }
+      payload.bot_username = config.botUsername;
+      payload.is_active = config.isActive;
+      payload.inactivity_timeout = config.inactivityTimeout;
+      payload.welcome_message = config.welcomeMessage;
+      payload.offline_message = config.offlineMessage;
       
-      await api.put('/telegram/config', payload);
+      const result = await api.telegram.updateConfig(payload);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       toast.success('Bot configuration saved successfully');
       fetchConfig(); // Refresh to get updated data
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save configuration');
+      toast.error(error.message || 'Failed to save configuration');
       console.error('Save error:', error);
     } finally {
       setSaving(false);
@@ -128,15 +134,7 @@ const ManageTelegramBot = () => {
       return;
     }
 
-    const toastId = toast.info('Testing bot connection...', { autoClose: false });
-    try {
-      const response = await api.post('/telegram/test-connection', { botToken: config.botToken });
-      toast.dismiss(toastId);
-      toast.success(`Bot connection successful! Connected to @${response.data.botInfo.username}`);
-    } catch (error) {
-      toast.dismiss(toastId);
-      toast.error(error.response?.data?.message || 'Bot connection failed');
-    }
+    toast.info('Bot connection testing is not available yet. Please save configuration to activate the bot.');
   };
 
   if (loading) {
@@ -298,7 +296,7 @@ const ManageTelegramBot = () => {
                 type="checkbox"
                 id="isActive"
                 name="isActive"
-                checked={config.isActive}
+                checked={config.is_active}
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />

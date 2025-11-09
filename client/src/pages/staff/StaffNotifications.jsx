@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api from '../../utils/supabaseAPI';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaBell, FaCheckDouble, FaTrash, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt } from 'react-icons/fa';
@@ -15,7 +15,12 @@ const StaffNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data } = await api.get('/notifications');
+      const { data, error } = await notificationsAPI.getByUser(user.id);
+      if (error) {
+        console.error('API Error:', error);
+        toast.error(error);
+        return;
+      }
       setNotifications(data);
     } catch (error) {
       toast.error('Error fetching notifications');
@@ -26,9 +31,9 @@ const StaffNotifications = () => {
 
   const markAsRead = async (id) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await notificationsAPI.markAsRead(id);
       setNotifications(notifications.map(n => 
-        n._id === id ? { ...n, isRead: true } : n
+        n.id === id ? { ...n, isRead: true } : n
       ));
       toast.success('Notification marked as read');
     } catch (error) {
@@ -38,7 +43,7 @@ const StaffNotifications = () => {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifications/mark-all-read');
+      await notificationsAPI.markAllAsRead(user.id);
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
@@ -49,8 +54,8 @@ const StaffNotifications = () => {
   const deleteNotification = async (id) => {
     if (window.confirm('Are you sure you want to delete this notification?')) {
       try {
-        await api.delete(`/notifications/${id}`);
-        setNotifications(notifications.filter(n => n._id !== id));
+        await notificationsAPI.delete(id);
+        setNotifications(notifications.filter(n => n.id !== id));
         toast.success('Notification deleted');
       } catch (error) {
         toast.error('Error deleting notification');
@@ -62,7 +67,7 @@ const StaffNotifications = () => {
     if (window.confirm('Are you sure you want to delete all read notifications?')) {
       try {
         await api.delete('/notifications/delete-read');
-        setNotifications(notifications.filter(n => !n.isRead));
+        setNotifications(notifications.filter(n => !n.is_read));
         toast.success('Read notifications deleted');
       } catch (error) {
         toast.error('Error deleting notifications');
@@ -100,12 +105,12 @@ const StaffNotifications = () => {
   };
 
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'unread') return !n.isRead;
-    if (filter === 'read') return n.isRead;
+    if (filter === 'unread') return !n.is_read;
+    if (filter === 'read') return n.is_read;
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
     return (
@@ -136,7 +141,7 @@ const StaffNotifications = () => {
               <span>Mark All Read</span>
             </button>
           )}
-          {notifications.some(n => n.isRead) && (
+          {notifications.some(n => n.is_read) && (
             <button
               onClick={deleteAllRead}
               className="btn-secondary flex items-center space-x-2 text-sm"
@@ -180,9 +185,9 @@ const StaffNotifications = () => {
       <div className="space-y-3">
         {filteredNotifications.map((notification) => (
           <div
-            key={notification._id}
+            key={notification.id}
             className={`card hover:shadow-lg transition-all duration-300 ${
-              !notification.isRead ? 'border-l-4 border-l-primary-600 bg-primary-50' : ''
+              !notification.is_read ? 'border-l-4 border-l-primary-600 bg-primary-50' : ''
             }`}
           >
             <div className="flex items-start space-x-4">
@@ -197,10 +202,10 @@ const StaffNotifications = () => {
                   </h3>
                   <div className="flex flex-col items-end ml-2">
                     <span className="text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(notification.createdAt).toLocaleDateString()}
+                      {new Date(notification.created_at).toLocaleDateString()}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {new Date(notification.createdAt).toLocaleTimeString()}
+                      {new Date(notification.created_at).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
@@ -234,16 +239,16 @@ const StaffNotifications = () => {
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {!notification.isRead && (
+                  {!notification.is_read && (
                     <button
-                      onClick={() => markAsRead(notification._id)}
+                      onClick={() => markAsRead(notification.id)}
                       className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded transition"
                     >
                       Mark as Read
                     </button>
                   )}
                   <button
-                    onClick={() => deleteNotification(notification._id)}
+                    onClick={() => deleteNotification(notification.id)}
                     className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition flex items-center space-x-1"
                   >
                     <FaTrash className="text-xs" />
