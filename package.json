@@ -1,0 +1,27 @@
+{
+  "name": "dhs-dhaka-health-service",
+  "version": "1.0.0",
+  "description": "DHS - Dhaka Health Service - Full Stack Healthcare Platform",
+  "scripts": {
+    "install-client": "cd client && npm install",
+    "install-server": "cd server && npm install",
+    "install-all": "npm run install-client && npm run install-server",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "keywords": [
+    "healthcare",
+    "nodejs",
+    "react",
+    "mongodb",
+    "express"
+  ],
+  "author": "Atiqur Rahman",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
