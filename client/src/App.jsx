@@ -51,6 +51,9 @@ import Support from './pages/support/Support';
 import NewSupportTicket from './pages/support/NewSupportTicket';
 import TicketDetails from './pages/support/TicketDetails';
 
+// Email Verification
+import EmailVerified from './pages/EmailVerified';
+
 // Animated Routes Wrapper
 function AnimatedRoutes() {
   const location = useLocation();
@@ -65,6 +68,7 @@ function AnimatedRoutes() {
         <Route path="/services" element={<Services />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/email-verified" element={<EmailVerified />} />
         
         {/* Profile - Protected for all logged-in users */}
         <Route

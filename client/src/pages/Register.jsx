@@ -89,7 +89,19 @@ const Register = () => {
         toast.success('Your staff application has been submitted. Please wait for admin approval before logging in.');
         navigate('/');
       } else {
-        toast.success('Account created successfully! Please check your email to verify your account.');
+        toast.success('Account created successfully! 🎉 Please check your email to verify your account.', {
+          autoClose: 7000,
+          position: 'top-center'
+        });
+        
+        // Show email verification reminder
+        setTimeout(() => {
+          toast.info('📧 Check your inbox (and spam folder) for the verification email from DHS Healthcare', {
+            autoClose: 10000,
+            position: 'top-center'
+          });
+        }, 1000);
+        
         navigate('/login');
       }
     } catch (error) {
