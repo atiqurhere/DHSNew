@@ -120,6 +120,14 @@ const Login = () => {
                   {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                 </button>
               </div>
+              <div className="mt-2 text-right">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-primary-600 hover:text-primary-700 font-semibold hover:underline transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
 
             <button

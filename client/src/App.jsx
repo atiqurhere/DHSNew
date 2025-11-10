@@ -51,8 +51,11 @@ import Support from './pages/support/Support';
 import NewSupportTicket from './pages/support/NewSupportTicket';
 import TicketDetails from './pages/support/TicketDetails';
 
-// Email Verification
+// Email Verification & Password Reset
 import EmailVerified from './pages/EmailVerified';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Animated Routes Wrapper
 function AnimatedRoutes() {
@@ -68,7 +71,12 @@ function AnimatedRoutes() {
         <Route path="/services" element={<Services />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        
+        {/* Email Verification & Password Reset */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/email-verified" element={<EmailVerified />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         
         {/* Profile - Protected for all logged-in users */}
         <Route
