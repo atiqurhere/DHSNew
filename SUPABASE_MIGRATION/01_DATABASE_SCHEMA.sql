@@ -244,7 +244,32 @@ CREATE INDEX idx_feedback_staff_id ON feedback(staff_id);
 CREATE INDEX idx_feedback_is_public ON feedback(is_public);
 
 -- ============================================
--- 8. LIVE_CHAT_SESSIONS TABLE
+-- 8. TELEGRAM_AGENTS TABLE (Create BEFORE live_chat_sessions)
+-- ============================================
+CREATE TABLE telegram_agents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  telegram_user_id VARCHAR(255) NOT NULL UNIQUE,
+  telegram_username VARCHAR(255),
+  
+  is_active BOOLEAN DEFAULT true,
+  is_available BOOLEAN DEFAULT false,
+  
+  total_chats_handled INTEGER DEFAULT 0,
+  average_response_time NUMERIC(10, 2) DEFAULT 0,
+  rating NUMERIC(2, 1) DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+  
+  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for telegram_agents
+CREATE INDEX idx_telegram_agents_telegram_user_id ON telegram_agents(telegram_user_id);
+CREATE INDEX idx_telegram_agents_is_available ON telegram_agents(is_available);
+
+-- ============================================
+-- 9. LIVE_CHAT_SESSIONS TABLE
 -- ============================================
 CREATE TABLE live_chat_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -279,8 +304,12 @@ CREATE INDEX idx_live_chat_sessions_status ON live_chat_sessions(status);
 CREATE INDEX idx_live_chat_sessions_session_id ON live_chat_sessions(session_id);
 CREATE INDEX idx_live_chat_sessions_created_at ON live_chat_sessions(created_at);
 
+-- Now add the foreign key to telegram_agents that references live_chat_sessions
+ALTER TABLE telegram_agents 
+ADD COLUMN current_chat_session_id UUID REFERENCES live_chat_sessions(id) ON DELETE SET NULL;
+
 -- ============================================
--- 9. CHATBOT_RESPONSES TABLE
+-- 10. CHATBOT_RESPONSES TABLE
 -- ============================================
 CREATE TABLE chatbot_responses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -303,32 +332,6 @@ CREATE TABLE chatbot_responses (
 CREATE INDEX idx_chatbot_responses_intent ON chatbot_responses(intent);
 CREATE INDEX idx_chatbot_responses_category ON chatbot_responses(category);
 CREATE INDEX idx_chatbot_responses_is_active ON chatbot_responses(is_active);
-
--- ============================================
--- 10. TELEGRAM_AGENTS TABLE
--- ============================================
-CREATE TABLE telegram_agents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  telegram_user_id VARCHAR(255) NOT NULL UNIQUE,
-  telegram_username VARCHAR(255),
-  
-  is_active BOOLEAN DEFAULT true,
-  is_available BOOLEAN DEFAULT false,
-  current_chat_session_id UUID REFERENCES live_chat_sessions(id) ON DELETE SET NULL,
-  
-  total_chats_handled INTEGER DEFAULT 0,
-  average_response_time NUMERIC(10, 2) DEFAULT 0,
-  rating NUMERIC(2, 1) DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
-  
-  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Indexes for telegram_agents
-CREATE INDEX idx_telegram_agents_telegram_user_id ON telegram_agents(telegram_user_id);
-CREATE INDEX idx_telegram_agents_is_available ON telegram_agents(is_available);
 
 -- ============================================
 -- 11. TELEGRAM_BOT_CONFIG TABLE (Single Row)
