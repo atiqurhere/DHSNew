@@ -5,6 +5,7 @@ import { servicesAPI } from '../utils/supabaseAPI';
 import { useAuth } from '../context/SupabaseAuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
+import { seedServices } from '../utils/seedSupabase';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -22,6 +23,27 @@ const Services = () => {
       const { data, error } = await servicesAPI.getAll();
       if (error) throw new Error(error);
       
+      // If no services exist, seed the database
+      if (!data || data.length === 0) {
+        console.log('No services found, seeding database...');
+        const seedResult = await seedServices();
+        if (seedResult.error) {
+          console.error('Seed error:', seedResult.error);
+          toast.error('Database setup needed. Please contact admin.');
+        } else {
+          toast.success('Services loaded successfully!');
+          // Retry fetching
+          const retry = await servicesAPI.getAll();
+          if (!retry.error && retry.data) {
+            const filtered = filter !== 'all' 
+              ? retry.data.filter(s => s.category === filter)
+              : retry.data;
+            setServices(filtered);
+            return;
+          }
+        }
+      }
+      
       // Filter by category if needed
       const filteredData = filter !== 'all' 
         ? data.filter(s => s.category === filter)
@@ -30,7 +52,7 @@ const Services = () => {
       setServices(filteredData);
     } catch (error) {
       console.error('Error fetching services:', error);
-      toast.error('Failed to load services');
+      toast.error('Failed to load services. Check console for details.');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/supabaseAPI';
+import { notificationsAPI } from '../../utils/supabaseAPI';
+import { seedNotifications } from '../../utils/seedSupabase';
+import { useAuth } from '../../context/SupabaseAuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaBell, FaCheckDouble, FaTrash, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
@@ -8,10 +10,13 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, unread, read
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
 
   const fetchNotifications = async () => {
     try {
@@ -21,8 +26,24 @@ const Notifications = () => {
         toast.error(error);
         return;
       }
+      
+      // If no notifications exist, seed some welcome notifications
+      if (!data || data.length === 0) {
+        console.log('No notifications found, seeding...');
+        const seedResult = await seedNotifications(user.id);
+        if (!seedResult.error) {
+          // Retry fetching
+          const retry = await notificationsAPI.getByUser(user.id);
+          if (!retry.error && retry.data) {
+            setNotifications(retry.data);
+            return;
+          }
+        }
+      }
+      
       setNotifications(data);
     } catch (error) {
+      console.error('Error fetching notifications:', error);
       toast.error('Error fetching notifications');
     } finally {
       setLoading(false);
