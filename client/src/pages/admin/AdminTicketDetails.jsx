@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../utils/supabaseAPI';
 import { useAuth } from '../../context/SupabaseAuthContext';
+import { getProfilePictureUrl } from '../../utils/imageHelper';
 import { 
   FaArrowLeft, 
   FaPaperPlane, 
@@ -302,9 +303,13 @@ const AdminTicketDetails = () => {
                         <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                           {senderPhoto ? (
                             <img 
-                              src={`http://localhost:5000${senderPhoto}`} 
+                              src={getProfilePictureUrl(senderPhoto)} 
                               alt={senderName}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>';
+                              }}
                             />
                           ) : (
                             <FaUser className="text-gray-400" />

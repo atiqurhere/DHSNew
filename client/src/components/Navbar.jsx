@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/SupabaseAuthContext';
 import { FaUserCircle, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import { notificationsAPI } from '../utils/supabaseAPI';
+import { getProfilePictureUrl } from '../utils/imageHelper';
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -116,16 +117,16 @@ const Navbar = () => {
                 <Link to="/profile" className="flex items-center space-x-2 hover:scale-105 transition-transform duration-200 text-gray-700 hover:text-primary-600">
                   {user.profilePicture ? (
                     <img
-                      src={`http://localhost:5000${user.profilePicture}`}
+                      src={getProfilePictureUrl(user.profilePicture)}
                       alt={user.name}
                       className="w-8 h-8 rounded-full object-cover border-2 border-primary-500"
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'block';
+                        e.target.src = '/default-avatar.png';
                       }}
                     />
-                  ) : null}
-                  <FaUserCircle size={24} style={{ display: user.profilePicture ? 'none' : 'block' }} />
+                  ) : (
+                    <FaUserCircle size={24} />
+                  )}
                   <span className="text-sm hidden xl:block">{user.name}</span>
                 </Link>
                 <button
@@ -215,16 +216,16 @@ const Navbar = () => {
                 >
                   {user.profilePicture ? (
                     <img
-                      src={`http://localhost:5000${user.profilePicture}`}
+                      src={getProfilePictureUrl(user.profilePicture)}
                       alt={user.name}
                       className="w-6 h-6 rounded-full object-cover border-2 border-primary-500"
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'block';
+                        e.target.src = '/default-avatar.png';
                       }}
                     />
-                  ) : null}
-                  <FaUserCircle size={20} style={{ display: user.profilePicture ? 'none' : 'block' }} />
+                  ) : (
+                    <FaUserCircle size={20} />
+                  )}
                   <span className="text-sm">{user.name}</span>
                 </Link>
                 <button

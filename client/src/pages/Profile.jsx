@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/SupabaseAuthContext';
 import { uploadAPI, authAPI } from '../utils/supabaseAPI';
+import { getProfilePictureUrl } from '../utils/imageHelper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaCamera, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaSave, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -15,7 +16,7 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(
-    user?.profilePicture ? `http://localhost:5000${user.profilePicture}` : '/default-avatar.png'
+    getProfilePictureUrl(user?.profilePicture)
   );
   
   const [formData, setFormData] = useState({
@@ -49,9 +50,7 @@ const Profile = () => {
         newPassword: '',
         confirmPassword: ''
       });
-      setImagePreview(
-        user.profilePicture ? `http://localhost:5000${user.profilePicture}` : '/default-avatar.png'
-      );
+      setImagePreview(getProfilePictureUrl(user.profilePicture));
     }
   }, [user]);
 
