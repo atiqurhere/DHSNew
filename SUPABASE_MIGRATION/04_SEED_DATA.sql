@@ -11,11 +11,11 @@ ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
 -- INSERT SAMPLE SERVICES (8 healthcare services)
 -- ============================================
 
-INSERT INTO services (name, category, description, price, duration, image, is_active, created_at)
+INSERT INTO services (name, category, description, price, duration, image, is_available, created_at)
 VALUES
   (
     'General Consultation',
-    'Consultation',
+    'doctor-on-call',
     'Comprehensive health check-up and medical consultation with our experienced doctors.',
     50,
     '30 mins',
@@ -25,7 +25,7 @@ VALUES
   ),
   (
     'Specialist Consultation',
-    'Consultation',
+    'doctor-on-call',
     'Consultation with specialist doctors for specific health conditions.',
     100,
     '45 mins',
@@ -35,7 +35,7 @@ VALUES
   ),
   (
     'Home Nursing Care',
-    'Home Care',
+    'nurse-care',
     'Professional nursing care in the comfort of your home.',
     80,
     '2 hours',
@@ -45,7 +45,7 @@ VALUES
   ),
   (
     'Physiotherapy Session',
-    'Therapy',
+    'home-care',
     'Expert physiotherapy for rehabilitation and pain management.',
     60,
     '1 hour',
@@ -55,7 +55,7 @@ VALUES
   ),
   (
     'Blood Test at Home',
-    'Laboratory',
+    'home-care',
     'Complete blood work done at your doorstep with results in 24 hours.',
     40,
     '20 mins',
@@ -65,7 +65,7 @@ VALUES
   ),
   (
     'Elderly Care Package',
-    'Home Care',
+    'home-care',
     'Comprehensive care package for elderly patients including daily assistance.',
     150,
     '4 hours',
@@ -75,7 +75,7 @@ VALUES
   ),
   (
     'Mental Health Counseling',
-    'Consultation',
+    'doctor-on-call',
     'Professional counseling services for mental health and wellness.',
     75,
     '50 mins',
@@ -84,11 +84,11 @@ VALUES
     NOW()
   ),
   (
-    'Vaccination Service',
-    'Preventive Care',
-    'All types of vaccinations administered by certified healthcare professionals.',
+    'Medicine Delivery',
+    'medicine-delivery',
+    'Fast and reliable delivery of prescribed medicines to your doorstep.',
     30,
-    '15 mins',
+    '1-2 hours',
     'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500',
     true,
     NOW()

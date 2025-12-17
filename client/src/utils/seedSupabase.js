@@ -8,75 +8,75 @@ import { supabase } from '../lib/supabase';
 const SAMPLE_SERVICES = [
   {
     name: 'General Consultation',
-    category: 'Consultation',
+    category: 'doctor-on-call',
     description: 'Comprehensive health check-up and medical consultation with our experienced doctors.',
     price: 50,
     duration: '30 mins',
     image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Specialist Consultation',
-    category: 'Consultation',
+    category: 'doctor-on-call',
     description: 'Consultation with specialist doctors for specific health conditions.',
     price: 100,
     duration: '45 mins',
     image: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Home Nursing Care',
-    category: 'Home Care',
+    category: 'nurse-care',
     description: 'Professional nursing care in the comfort of your home.',
     price: 80,
     duration: '2 hours',
     image: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Physiotherapy Session',
-    category: 'Therapy',
+    category: 'home-care',
     description: 'Expert physiotherapy for rehabilitation and pain management.',
     price: 60,
     duration: '1 hour',
     image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Blood Test at Home',
-    category: 'Laboratory',
+    category: 'home-care',
     description: 'Complete blood work done at your doorstep with results in 24 hours.',
     price: 40,
     duration: '20 mins',
     image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Elderly Care Package',
-    category: 'Home Care',
+    category: 'home-care',
     description: 'Comprehensive care package for elderly patients including daily assistance.',
     price: 150,
     duration: '4 hours',
     image: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=500',
-    is_active: true
+    is_available: true
   },
   {
     name: 'Mental Health Counseling',
-    category: 'Consultation',
+    category: 'doctor-on-call',
     description: 'Professional counseling services for mental health and wellness.',
     price: 75,
     duration: '50 mins',
     image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500',
-    is_active: true
+    is_available: true
   },
   {
-    name: 'Vaccination Service',
-    category: 'Preventive Care',
-    description: 'All types of vaccinations administered by certified healthcare professionals.',
+    name: 'Medicine Delivery',
+    category: 'medicine-delivery',
+    description: 'Fast and reliable delivery of prescribed medicines to your doorstep.',
     price: 30,
-    duration: '15 mins',
+    duration: '1-2 hours',
     image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500',
-    is_active: true
+    is_available: true
   }
 ];
 
