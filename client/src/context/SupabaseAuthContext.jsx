@@ -52,6 +52,13 @@ export const AuthProvider = ({ children }) => {
           return
         }
         
+        // Skip SIGNED_IN if user already exists (prevents refetch on tab switch)
+        if (event === 'SIGNED_IN' && user && session?.user?.id === user.id) {
+          console.log('⏭️ Skipping SIGNED_IN - user already loaded')
+          setSession(session)
+          return
+        }
+        
         setSession(session)
         if (session?.user && event !== 'INITIAL_SESSION') {
           await fetchUserProfile(session.user.id)

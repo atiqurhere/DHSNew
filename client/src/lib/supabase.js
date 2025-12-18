@@ -11,7 +11,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'dhs-auth-token',
+    // Don't refetch on every tab switch
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'dhs-healthcare'
+    }
   }
 })
 
