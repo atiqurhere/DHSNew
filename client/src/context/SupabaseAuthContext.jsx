@@ -45,10 +45,11 @@ export const AuthProvider = ({ children }) => {
         setSession(session)
         if (session?.user) {
           await fetchUserProfile(session.user.id)
+          // Don't set loading here - fetchUserProfile handles it
         } else {
           setUser(null)
+          setLoading(false)
         }
-        setLoading(false)
       }
     )
 
@@ -59,26 +60,66 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const fetchUserProfile = async (userId) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      console.error('⚠️ Profile fetch timeout - aborting request')
+      controller.abort()
+      setLoading(false)
+    }, 5000) // 5 second timeout
+
     try {
       console.log('🔍 Fetching user profile for ID:', userId)
       const startTime = performance.now()
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // Use timeout signal
+      const { data, error } = await Promise.race([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 5000)
+        )
+      ])
 
+      clearTimeout(timeoutId)
       const endTime = performance.now()
       console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Profile fetch error:', error)
+        throw error
+      }
+      
+      if (!data) {
+        console.error('❌ No user data returned')
+        setUser(null)
+        setLoading(false)
+        return
+      }
       
       console.log('✅ User profile loaded:', data?.name)
       setUser(data)
       setLoading(false)
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error)
+      clearTimeout(timeoutId)
+      console.error('❌ Error fetching user profile:', error.message)
+      
+      // On timeout or error, still try to proceed with session user data
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        console.log('⚠️ Using basic user data from session')
+        // Create minimal user object from session
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.name || session.user.email,
+          role: session.user.user_metadata?.role || 'patient'
+        })
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     }
   }
