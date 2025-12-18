@@ -18,61 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null)
   const [isFetchingProfile, setIsFetchingProfile] = useState(false)
 
-  useEffect(() => {
-    console.log('🔄 AuthProvider: Initializing auth check...')
-    let isInitialized = false
-    
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('📋 Session check result:', session ? 'Session found' : 'No session')
-      setSession(session)
-      if (session?.user && !isInitialized) {
-        console.log('👤 User found in session, fetching profile...')
-        isInitialized = true
-        fetchUserProfile(session.user.id)
-      } else if (!session) {
-        console.log('❌ No user in session')
-        setUser(null)
-        setLoading(false)
-      }
-    }).catch(error => {
-      console.error('❌ Error getting session:', error)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
-        
-        if (event === 'INITIAL_SESSION' && isInitialized) {
-          console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
-          return
-        }
-        
-        if (event === 'SIGNED_IN' && user && session?.user?.id === user.id) {
-          console.log('⏭️ Skipping SIGNED_IN - user already loaded')
-          setSession(session)
-          return
-        }
-        
-        setSession(session)
-        if (session?.user && event !== 'INITIAL_SESSION') {
-          await fetchUserProfile(session.user.id)
-        } else if (!session) {
-          setUser(null)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => {
-      console.log('🧹 AuthProvider: Cleaning up subscription')
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const fetchUserProfile = async (userId) => {
+  const fetchUserProfile = async (userId, userSession) => {
     if (isFetchingProfile) {
       console.log('⏭️ Profile fetch already in progress, skipping...')
       return
@@ -83,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     const startTime = performance.now()
     
     // SESSION-FIRST APPROACH: Load session immediately, then try DB
-    const currentSession = session
+    const currentSession = userSession || session
     
     if (currentSession?.user) {
       // Immediately load from session (INSTANT)
@@ -98,6 +44,12 @@ export const AuthProvider = ({ children }) => {
       console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
       setUser(sessionUser)
       setLoading(false)
+    } else {
+      console.error('❌ No session data available')
+      setUser(null)
+      setLoading(false)
+      setIsFetchingProfile(false)
+      return
     }
     
     // Then try to upgrade with database data
@@ -123,6 +75,61 @@ export const AuthProvider = ({ children }) => {
     
     setIsFetchingProfile(false)
   }
+
+  useEffect(() => {
+    console.log('🔄 AuthProvider: Initializing auth check...')
+    let isInitialized = false
+    
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📋 Session check result:', session ? 'Session found' : 'No session')
+      setSession(session)
+      if (session?.user && !isInitialized) {
+        console.log('👤 User found in session, fetching profile...')
+        isInitialized = true
+        fetchUserProfile(session.user.id, session)
+      } else if (!session) {
+        console.log('❌ No user in session')
+        setUser(null)
+        setLoading(false)
+      }
+    }).catch(error => {
+      console.error('❌ Error getting session:', error)
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
+        
+        if (event === 'INITIAL_SESSION' && isInitialized) {
+          console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
+          return
+        }
+        
+        setSession(session)
+        
+        if (session?.user) {
+          if (event === 'SIGNED_IN' && user && session.user.id === user.id) {
+            console.log('⏭️ Skipping SIGNED_IN - user already loaded')
+            return
+          }
+          if (event !== 'INITIAL_SESSION') {
+            await fetchUserProfile(session.user.id, session)
+          }
+        } else {
+          setUser(null)
+          setLoading(false)
+        }
+      }
+    )
+
+    return () => {
+      console.log('🧹 AuthProvider: Cleaning up subscription')
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const signUp = async ({ name, email, password, phone, role = 'patient', address, staffType }) => {
     try {
@@ -254,7 +261,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
 
-      await fetchUserProfile(user.id)
+      await fetchUserProfile(user.id, session)
     } catch (error) {
       console.error('Update profile error:', error)
       throw error
@@ -290,7 +297,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     updateProfile,
     updatePassword,
-    refreshProfile: () => user ? fetchUserProfile(user.id) : null
+    refreshProfile: () => user ? fetchUserProfile(user.id, session) : null
   }
 
   return (
