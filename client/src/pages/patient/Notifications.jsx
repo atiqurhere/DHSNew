@@ -8,14 +8,14 @@ import { FaBell, FaCheckDouble, FaTrash, FaInfoCircle, FaCheckCircle, FaExclamat
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, unread, read
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
   const fetchNotifications = async () => {
     if (!user?.id) {
       console.log('❌ No user ID in fetchNotifications');
-      setDataLoading(false);
+      setLoading(false);
       return;
     }
     
@@ -29,7 +29,7 @@ const Notifications = () => {
       if (error) {
         console.error('❌ API Error:', error);
         toast.error(error);
-        setDataLoading(false);
+        setLoading(false);
         return;
       }
       
@@ -44,7 +44,7 @@ const Notifications = () => {
           const retry = await notificationsAPI.getByUser(user.id);
           if (!retry.error && retry.data) {
             setNotifications(retry.data);
-            setDataLoading(false);
+            setLoading(false);
             return;
           }
         }
@@ -55,22 +55,22 @@ const Notifications = () => {
       console.error('❌ Error fetching notifications:', error);
       toast.error('Error fetching notifications');
     } finally {
-      setDataLoading(false);
+      setLoading(false);
     }
   };
 
   // Fetch notifications once when user is available
   useEffect(() => {
-    console.log('🔔 Notifications useEffect triggered, user?.id:', user?.id, 'authLoading:', authLoading);
+    console.log('🔔 Notifications useEffect triggered, user?.id:', user?.id);
     let mounted = true;
     
     const loadNotifications = async () => {
       if (user?.id && mounted) {
         console.log('✅ User ID exists, fetching notifications...');
         await fetchNotifications();
-      } else if (!authLoading && !user) {
-        console.log('⚠️ Auth finished but no user');
-        setDataLoading(false);
+      } else if (!user) {
+        console.log('⚠️ No user yet, setting loading to false');
+        setLoading(false);
       }
     };
     
@@ -79,7 +79,7 @@ const Notifications = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.id, authLoading]); // Re-run when user ID or auth loading state changes
+  }, [user?.id]); // Only re-fetch when user ID changes, not the whole user object
 
   const markAsRead = async (id) => {
     try {
@@ -164,7 +164,7 @@ const Notifications = () => {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (dataLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner size="lg" />

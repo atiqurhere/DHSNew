@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { cacheManager } from '../utils/cache'
 
@@ -17,7 +17,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
   const [isFetchingProfile, setIsFetchingProfile] = useState(false)
-  const userIdRef = useRef(null) // Track user ID to prevent duplicate updates
 
   const fetchUserProfile = async (userId, userSession) => {
     if (isFetchingProfile) {
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }) => {
         created_at: currentSession.user.created_at
       }
       console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
-      userIdRef.current = sessionUser.id // Store the ID
       setUser(sessionUser)
       setLoading(false)
     } else {
@@ -69,7 +67,7 @@ export const AuthProvider = ({ children }) => {
         console.warn('⚠️ Database fetch failed:', error.message, '- Using session data')
       } else if (data) {
         console.log('✅ Upgraded to full profile from DB:', data.name, `(${data.role})`)
-        setUser(data) // Upgrade to full data (but ID is same, so useEffects won't re-run)
+        setUser(data) // Upgrade to full data
       }
     } catch (dbError) {
       console.warn('⚠️ Database error:', dbError.message, '- Continuing with session data')
