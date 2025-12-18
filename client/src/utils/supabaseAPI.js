@@ -483,7 +483,7 @@ export const notificationsAPI = {
 export const supportAPI = {
   getAll: async () => {
     try {
-      const { data, error } = await db.support_tickets
+      const { data, error } = await db.supportTickets()
         .select('*, user:users(*), assigned_to_user:users!assigned_to(*)')
         .order('created_at', { ascending: false })
 
@@ -496,7 +496,7 @@ export const supportAPI = {
 
   getByUser: async (userId) => {
     try {
-      const { data, error } = await db.support_tickets
+      const { data, error } = await db.supportTickets()
         .select('*, assigned_to_user:users!assigned_to(*)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -510,7 +510,7 @@ export const supportAPI = {
 
   getById: async (id) => {
     try {
-      const { data, error } = await db.support_tickets
+      const { data, error } = await db.supportTickets()
         .select('*, user:users(*), assigned_to_user:users!assigned_to(*)')
         .eq('id', id)
         .single()
@@ -524,7 +524,7 @@ export const supportAPI = {
 
   create: async (ticketData) => {
     try {
-      const { data, error } = await db.support_tickets.insert({
+      const { data, error } = await db.supportTickets().insert({
         ...ticketData,
         created_at: new Date().toISOString()
       })
@@ -555,7 +555,7 @@ export const supportAPI = {
 
   update: async (id, updates) => {
     try {
-      const { data, error } = await db.support_tickets
+      const { data, error } = await db.supportTickets()
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
 
@@ -569,7 +569,7 @@ export const supportAPI = {
   addResponse: async (ticketId, userId, message) => {
     try {
       // Get current ticket
-      const { data: ticket } = await db.support_tickets
+      const { data: ticket } = await db.supportTickets()
         .select('responses')
         .eq('id', ticketId)
         .single()
@@ -581,7 +581,7 @@ export const supportAPI = {
         created_at: new Date().toISOString()
       })
 
-      const { data, error } = await db.support_tickets
+      const { data, error } = await db.supportTickets()
         .update({
           responses,
           updated_at: new Date().toISOString()

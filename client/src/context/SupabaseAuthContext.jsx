@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { cacheManager } from '../utils/cache'
 
 const AuthContext = createContext({})
 
@@ -182,6 +183,8 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
       setUser(null)
       setSession(null)
+      // Clear all cached data on logout
+      cacheManager.clear()
     } catch (error) {
       console.error('Sign out error:', error)
       throw error

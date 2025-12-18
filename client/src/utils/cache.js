@@ -91,9 +91,17 @@ export async function cachedFetch(key, fetcher, duration = CACHE_DURATION) {
     return cached;
   }
   
-  const data = await fetcher();
-  cacheManager.set(key, data, duration);
-  return data;
+  try {
+    const data = await fetcher();
+    // Only cache successful responses (not errors or null/undefined)
+    if (data !== null && data !== undefined) {
+      cacheManager.set(key, data, duration);
+    }
+    return data;
+  } catch (error) {
+    // Don't cache errors - let them propagate
+    throw error;
+  }
 }
 
 export default cacheManager;
