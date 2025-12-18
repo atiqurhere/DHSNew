@@ -12,12 +12,6 @@ const Notifications = () => {
   const [filter, setFilter] = useState('all'); // all, unread, read
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
-
   const fetchNotifications = async () => {
     try {
       const { data, error } = await notificationsAPI.getByUser(user.id);
@@ -49,6 +43,25 @@ const Notifications = () => {
       setLoading(false);
     }
   };
+
+  // Fetch notifications once when user is available
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadNotifications = async () => {
+      if (user && mounted) {
+        await fetchNotifications();
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    loadNotifications();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]); // Only re-fetch when user ID changes
 
   const markAsRead = async (id) => {
     try {

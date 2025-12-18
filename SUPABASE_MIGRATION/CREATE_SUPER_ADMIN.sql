@@ -16,7 +16,7 @@ SET
     "manageAdmins": true,
     "viewReports": true
   }'::jsonb
-WHERE email = 'your-email@example.com';
+WHERE email = 'atiqur.dev404@gmail.com';
 
 -- Verify it worked:
 SELECT 
@@ -26,7 +26,7 @@ SELECT
   permissions->>'manageAdmins' as can_manage_admins,
   permissions
 FROM users 
-WHERE email = 'your-email@example.com';
+WHERE email = 'atiqur.dev404@gmail.com';
 
 -- This should show:
 -- can_manage_admins = 'true'

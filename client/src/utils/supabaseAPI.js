@@ -1,4 +1,5 @@
 import { supabase, db, storage } from '../lib/supabase'
+import { cacheManager, cachedFetch } from './cache'
 
 /**
  * Supabase API Helper
@@ -145,11 +146,16 @@ export const authAPI = {
 export const servicesAPI = {
   getAll: async () => {
     try {
-      const { data, error } = await db.services
-        .select()
-        .order('created_at', { ascending: false })
+      // Use cache for services list (5 minutes)
+      const data = await cachedFetch('services:all', async () => {
+        const { data, error } = await db.services
+          .select()
+          .order('created_at', { ascending: false })
 
-      if (error) throw error
+        if (error) throw error
+        return data
+      }, 5 * 60 * 1000) // 5 minutes cache
+
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -158,8 +164,13 @@ export const servicesAPI = {
 
   getById: async (id) => {
     try {
-      const { data, error } = await db.services.select().eq('id', id).single()
-      if (error) throw error
+      // Cache individual service
+      const data = await cachedFetch(`service:${id}`, async () => {
+        const { data, error } = await db.services.select().eq('id', id).single()
+        if (error) throw error
+        return data
+      }, 5 * 60 * 1000)
+
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -170,6 +181,10 @@ export const servicesAPI = {
     try {
       const { data, error } = await db.services.insert(serviceData)
       if (error) throw error
+      
+      // Invalidate services cache
+      cacheManager.invalidatePattern(/^service/)
+      
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -180,6 +195,10 @@ export const servicesAPI = {
     try {
       const { data, error } = await db.services.update(updates).eq('id', id)
       if (error) throw error
+      
+      // Invalidate services cache
+      cacheManager.invalidatePattern(/^service/)
+      
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -190,6 +209,10 @@ export const servicesAPI = {
     try {
       const { error } = await db.services.delete().eq('id', id)
       if (error) throw error
+      
+      // Invalidate services cache
+      cacheManager.invalidatePattern(/^service/)
+      
       return { data: { message: 'Service deleted successfully' } }
     } catch (error) {
       return { error: error.message }
@@ -366,12 +389,17 @@ export const paymentsAPI = {
 export const notificationsAPI = {
   getByUser: async (userId) => {
     try {
-      const { data, error } = await db.notifications
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+      // Cache notifications for 2 minutes (shorter than services since they update more frequently)
+      const data = await cachedFetch(`notifications:user:${userId}`, async () => {
+        const { data, error } = await db.notifications
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
 
-      if (error) throw error
+        if (error) throw error
+        return data
+      }, 2 * 60 * 1000) // 2 minutes cache
+
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -385,6 +413,10 @@ export const notificationsAPI = {
         .eq('id', id)
 
       if (error) throw error
+      
+      // Invalidate notification cache when marking as read
+      cacheManager.invalidatePattern(/^notifications:/)
+      
       return { data: { message: 'Notification marked as read' } }
     } catch (error) {
       return { error: error.message }
@@ -398,6 +430,10 @@ export const notificationsAPI = {
         .eq('user_id', userId)
 
       if (error) throw error
+      
+      // Invalidate notification cache
+      cacheManager.invalidate(`notifications:user:${userId}`)
+      
       return { data: { message: 'All notifications marked as read' } }
     } catch (error) {
       return { error: error.message }
@@ -408,6 +444,10 @@ export const notificationsAPI = {
     try {
       const { error } = await db.notifications.delete().eq('id', id)
       if (error) throw error
+      
+      // Invalidate notification cache
+      cacheManager.invalidatePattern(/^notifications:/)
+      
       return { data: { message: 'Notification deleted' } }
     } catch (error) {
       return { error: error.message }
@@ -427,6 +467,8 @@ export const notificationsAPI = {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
+          // Invalidate cache when new notification arrives
+          cacheManager.invalidate(`notifications:user:${userId}`)
           callback(payload.new)
         }
       )

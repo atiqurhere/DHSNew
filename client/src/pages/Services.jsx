@@ -14,10 +14,6 @@ const Services = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchServices();
-  }, [filter]);
-
   const fetchServices = async () => {
     try {
       const { data, error } = await servicesAPI.getAll();
@@ -57,6 +53,23 @@ const Services = () => {
       setLoading(false);
     }
   };
+
+  // Fetch services on mount and filter change
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadServices = async () => {
+      if (mounted) {
+        await fetchServices();
+      }
+    };
+    
+    loadServices();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [filter]); // Only re-fetch when filter changes
 
   const handleBookService = (service) => {
     if (!user) {
