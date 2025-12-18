@@ -77,32 +77,57 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const fetchUserProfile = async (userId) => {
+    // Prevent duplicate fetches
+    if (isFetchingProfile) {
+      console.log('⏭️ Profile fetch already in progress, skipping...')
+      return
+    }
+
+    setIsFetchingProfile(true)
+    
     try {
       console.log('🔍 Fetching user profile for ID:', userId)
       const startTime = performance.now()
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
-        .eq('id', userId)
-        .single()
-
-      const endTime = performance.now()
-      console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
-
-      if (error) {
-        console.error('❌ Profile fetch error:', error)
-        throw error
-      }
+      // Use timeout to prevent hanging
+      const timeoutMs = 10000 // 10 seconds
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
       
-      if (!data) {
-        console.error('❌ No user data returned')
-        throw new Error('No user data')
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
+          .eq('id', userId)
+          .abortSignal(controller.signal)
+          .single()
+
+        clearTimeout(timeoutId)
+        const endTime = performance.now()
+        console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
+
+        if (error) {
+          console.error('❌ Profile fetch error:', error)
+          throw error
+        }
+        
+        if (!data) {
+          console.error('❌ No user data returned')
+          throw new Error('No user data')
+        }
+        
+        console.log('✅ User profile loaded:', data.name)
+        setUser(data)
+        setLoading(false)
+        setIsFetchingProfile(false)
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.error(`❌ Profile fetch timeout after ${timeoutMs}ms`)
+          throw new Error(`Profile fetch timeout after ${timeoutMs}ms`)
+        }
+        throw fetchError
       }
-      
-      console.log('✅ User profile loaded:', data.name)
-      setUser(data)
-      setLoading(false)
     } catch (error) {
       console.error('❌ Error fetching user profile:', error.message)
       console.log('⚠️ Using session fallback - app will work with limited data')
@@ -126,6 +151,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null)
       }
       setLoading(false)
+      setIsFetchingProfile(false)
     }
   }
 
