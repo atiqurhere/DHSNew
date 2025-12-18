@@ -17,22 +17,27 @@ const Services = () => {
   const fetchServices = async () => {
     setLoading(true);
     try {
-      console.log('Fetching services...');
+      console.log('🏥 Fetching services...');
+      const startTime = performance.now();
+      
       const { data, error } = await servicesAPI.getAll();
       
+      const endTime = performance.now();
+      console.log(`⏱️ Services fetch took ${(endTime - startTime).toFixed(2)}ms`);
+      
       if (error) {
-        console.error('Service API error:', error);
+        console.error('❌ Service API error:', error);
         throw new Error(error);
       }
       
-      console.log('Services data received:', data);
+      console.log('✅ Services data received:', data?.length, 'services');
       
       // If no services exist, seed the database
       if (!data || data.length === 0) {
-        console.log('No services found, seeding database...');
+        console.log('⚠️ No services found, seeding database...');
         const seedResult = await seedServices();
         if (seedResult.error) {
-          console.error('Seed error:', seedResult.error);
+          console.error('❌ Seed error:', seedResult.error);
           toast.error('Database setup needed. Please contact admin.');
         } else {
           toast.success('Services loaded successfully!');
@@ -54,7 +59,7 @@ const Services = () => {
         ? data.filter(s => s.category === filter)
         : data;
       
-      console.log('Setting services:', filteredData);
+      console.log('📝 Setting services:', filteredData?.length, 'after filter');
       setServices(filteredData);
     } catch (error) {
       console.error('Error fetching services:', error);

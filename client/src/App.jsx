@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import TempAdminWarning from './components/TempAdminWarning';
+import { performanceMonitor } from './utils/performanceMonitor';
 
 // Pages
 import Home from './pages/Home';
@@ -257,6 +258,11 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  React.useEffect(() => {
+    performanceMonitor.logComponentMount('App');
+    return () => performanceMonitor.logComponentUnmount('App');
+  }, []);
+
   return (
     <ErrorBoundary>
       <AuthProvider>

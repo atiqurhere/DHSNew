@@ -18,21 +18,30 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null)
 
   useEffect(() => {
+    console.log('🔄 AuthProvider: Initializing auth check...')
+    
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📋 Session check result:', session ? 'Session found' : 'No session')
       setSession(session)
       if (session?.user) {
+        console.log('👤 User found in session, fetching profile...')
         // Fetch full user profile from users table
         fetchUserProfile(session.user.id)
       } else {
+        console.log('❌ No user in session')
         setUser(null)
         setLoading(false)
       }
+    }).catch(error => {
+      console.error('❌ Error getting session:', error)
+      setLoading(false)
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
         setSession(session)
         if (session?.user) {
           await fetchUserProfile(session.user.id)
@@ -44,24 +53,32 @@ export const AuthProvider = ({ children }) => {
     )
 
     return () => {
+      console.log('🧹 AuthProvider: Cleaning up subscription')
       subscription.unsubscribe()
     }
   }, [])
 
   const fetchUserProfile = async (userId) => {
     try {
+      console.log('🔍 Fetching user profile for ID:', userId)
+      const startTime = performance.now()
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
 
+      const endTime = performance.now()
+      console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
+
       if (error) throw error
       
+      console.log('✅ User profile loaded:', data?.name)
       setUser(data)
       setLoading(false)
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      console.error('❌ Error fetching user profile:', error)
       setLoading(false)
     }
   }
