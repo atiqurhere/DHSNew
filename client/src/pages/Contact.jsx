@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/supabaseAPI';
+import { pagesAPI } from '../utils/supabaseAPI';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaAmbulance, FaTicketAlt } from 'react-icons/fa';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import api from '../utils/supabaseAPI';
+import { pagesAPI } from '../utils/supabaseAPI';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { FaUsers, FaUserNurse, FaHeartbeat, FaCalendar, FaCheckCircle } from 'react-icons/fa';
 
