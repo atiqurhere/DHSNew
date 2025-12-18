@@ -2,8 +2,9 @@
 
 ## Issue Summary
 1. **Profile fetch timing out** - Supabase RLS policies blocking queries
-2. **Old build still cached** - Browser showing old version
+2. **Old build still cached** - Browser showing old version ✅ FIXED
 3. **Profile photo not saving** - Storage RLS policies missing
+4. **Page content error** - Missing slug column in page_content table
 
 ---
 
@@ -120,7 +121,38 @@ ON storage.objects FOR DELETE
 TO authenticated
 USING ((storage.foldername(name))[1] = auth.uid()::text);
 
--- 3. CREATE INDEXES FOR PERFORMANCE
+-- 3. FIX PAGE_CONTENT TABLE
+-- ============================================
+
+-- Add missing slug column
+ALTER TABLE page_content 
+ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE;
+
+-- Add is_published column if it doesn't exist
+ALTER TABLE page_content 
+ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT true;
+
+-- Update existing rows with slugs
+UPDATE page_content 
+SET slug = LOWER(REPLACE(COALESCE(page_name, 'page-' || id::text), ' ', '-'))
+WHERE slug IS NULL;
+
+-- Make slug NOT NULL
+ALTER TABLE page_content 
+ALTER COLUMN slug SET NOT NULL;
+
+-- Create index for faster slug lookups
+CREATE INDEX IF NOT EXISTS idx_page_content_slug ON page_content(slug);
+CREATE INDEX IF NOT EXISTS idx_page_content_published ON page_content(is_published);
+
+-- Insert default pages if they don't exist
+INSERT INTO page_content (page_name, slug, content, is_published)
+VALUES 
+  ('About', 'about', '{"sections": []}', true),
+  ('Contact', 'contact', '{"sections": []}', true)
+ON CONFLICT (slug) DO NOTHING;
+
+-- 4. CREATE INDEXES FOR PERFORMANCE
 -- ============================================
 
 -- Add index on users.id for faster lookups
@@ -128,7 +160,7 @@ CREATE INDEX IF NOT EXISTS idx_users_id ON users(id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
--- 4. VERIFY SETUP
+-- 5. VERIFY SETUP
 -- ============================================
 SELECT 
   'Users Table Policies' as check_type,
