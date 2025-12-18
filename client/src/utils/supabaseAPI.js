@@ -43,7 +43,7 @@ export const authAPI = {
         userProfile.verification_status = 'pending'
       }
 
-      const { error: dbError } = await db.users.insert(userProfile)
+      const { error: dbError } = await db.users().insert(userProfile)
       if (dbError) throw dbError
 
       return { data: authData }
@@ -96,7 +96,7 @@ export const authAPI = {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await db.users.select().eq('id', user.id).single()
+      const { data, error } = await db.users().select().eq('id', user.id).single()
       if (error) throw error
 
       return { data }
@@ -107,10 +107,10 @@ export const authAPI = {
 
   updateProfile: async (userId, updates) => {
     try {
-      const { error } = await db.users.update(updates).eq('id', userId)
+      const { error } = await db.users().update(updates).eq('id', userId)
       if (error) throw error
 
-      const { data } = await db.users.select().eq('id', userId).single()
+      const { data } = await db.users().select().eq('id', userId).single()
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -148,7 +148,7 @@ export const servicesAPI = {
     try {
       // Use cache for services list (5 minutes)
       const data = await cachedFetch('services:all', async () => {
-        const { data, error } = await db.services
+        const { data, error } = await db.services()
           .select()
           .order('created_at', { ascending: false })
 
@@ -166,7 +166,7 @@ export const servicesAPI = {
     try {
       // Cache individual service
       const data = await cachedFetch(`service:${id}`, async () => {
-        const { data, error } = await db.services.select().eq('id', id).single()
+        const { data, error } = await db.services().select().eq('id', id).single()
         if (error) throw error
         return data
       }, 5 * 60 * 1000)
@@ -179,7 +179,7 @@ export const servicesAPI = {
 
   create: async (serviceData) => {
     try {
-      const { data, error } = await db.services.insert(serviceData)
+      const { data, error } = await db.services().insert(serviceData)
       if (error) throw error
       
       // Invalidate services cache
@@ -193,7 +193,7 @@ export const servicesAPI = {
 
   update: async (id, updates) => {
     try {
-      const { data, error } = await db.services.update(updates).eq('id', id)
+      const { data, error } = await db.services().update(updates).eq('id', id)
       if (error) throw error
       
       // Invalidate services cache
@@ -207,7 +207,7 @@ export const servicesAPI = {
 
   delete: async (id) => {
     try {
-      const { error } = await db.services.delete().eq('id', id)
+      const { error } = await db.services().delete().eq('id', id)
       if (error) throw error
       
       // Invalidate services cache
@@ -266,7 +266,7 @@ export const bookingsAPI = {
 
   create: async (bookingData) => {
     try {
-      const { data, error } = await db.bookings.insert({
+      const { data, error } = await db.bookings().insert({
         ...bookingData,
         created_at: new Date().toISOString()
       })
@@ -274,7 +274,7 @@ export const bookingsAPI = {
       if (error) throw error
 
       // Create notification for patient
-      await db.notifications.insert({
+      await db.notifications().insert({
         user_id: bookingData.patient_id,
         title: 'Booking Confirmed',
         message: `Your appointment has been scheduled for ${new Date(bookingData.appointment_date).toLocaleDateString()}`,
@@ -352,7 +352,7 @@ export const paymentsAPI = {
 
   create: async (paymentData) => {
     try {
-      const { data, error } = await db.payments.insert({
+      const { data, error } = await db.payments().insert({
         ...paymentData,
         created_at: new Date().toISOString()
       })
@@ -375,7 +375,7 @@ export const paymentsAPI = {
         updates.transaction_id = transactionId
       }
 
-      const { data, error } = await db.payments.update(updates).eq('id', id)
+      const { data, error } = await db.payments().update(updates).eq('id', id)
       if (error) throw error
       return { data }
     } catch (error) {
@@ -391,7 +391,7 @@ export const notificationsAPI = {
     try {
       // Cache notifications for 2 minutes (shorter than services since they update more frequently)
       const data = await cachedFetch(`notifications:user:${userId}`, async () => {
-        const { data, error } = await db.notifications
+        const { data, error } = await db.notifications()
           .select()
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
@@ -408,7 +408,7 @@ export const notificationsAPI = {
 
   markAsRead: async (id) => {
     try {
-      const { error } = await db.notifications
+      const { error } = await db.notifications()
         .update({ is_read: true })
         .eq('id', id)
 
@@ -425,7 +425,7 @@ export const notificationsAPI = {
 
   markAllAsRead: async (userId) => {
     try {
-      const { error } = await db.notifications
+      const { error } = await db.notifications()
         .update({ is_read: true })
         .eq('user_id', userId)
 
@@ -442,7 +442,7 @@ export const notificationsAPI = {
 
   delete: async (id) => {
     try {
-      const { error } = await db.notifications.delete().eq('id', id)
+      const { error } = await db.notifications().delete().eq('id', id)
       if (error) throw error
       
       // Invalidate notification cache
@@ -532,7 +532,7 @@ export const supportAPI = {
       if (error) throw error
 
       // Notify admins
-      const { data: admins } = await db.users.select('id').eq('role', 'admin')
+      const { data: admins } = await db.users().select('id').eq('role', 'admin')
       
       if (admins && admins.length > 0) {
         const notifications = admins.map(admin => ({
@@ -544,7 +544,7 @@ export const supportAPI = {
           related_model: 'support_tickets'
         }))
 
-        await db.notifications.insert(notifications)
+        await db.notifications().insert(notifications)
       }
 
       return { data }
@@ -1069,7 +1069,7 @@ export const adminAPI = {
 
   updateUser: async (userId, updates) => {
     try {
-      const { data, error } = await db.users.update(updates).eq('id', userId)
+      const { data, error } = await db.users().update(updates).eq('id', userId)
       if (error) throw error
       return { data }
     } catch (error) {
@@ -1079,7 +1079,7 @@ export const adminAPI = {
 
   deleteUser: async (userId) => {
     try {
-      const { error } = await db.users.delete().eq('id', userId)
+      const { error } = await db.users().delete().eq('id', userId)
       if (error) throw error
       return { data: { message: 'User deleted successfully' } }
     } catch (error) {
@@ -1101,7 +1101,7 @@ export const adminAPI = {
       if (error) throw error
 
       // Notify staff
-      await db.notifications.insert({
+      await db.notifications().insert({
         user_id: staffId,
         title: 'Account Verified',
         message: 'Your staff account has been verified. You can now log in.',
@@ -1123,9 +1123,9 @@ export const adminAPI = {
         { count: totalPayments },
         { count: pendingTickets }
       ] = await Promise.all([
-        db.users.select('*', { count: 'exact', head: true }),
-        db.bookings.select('*', { count: 'exact', head: true }),
-        db.payments.select('*', { count: 'exact', head: true }),
+        db.users().select('*', { count: 'exact', head: true }),
+        db.bookings().select('*', { count: 'exact', head: true }),
+        db.payments().select('*', { count: 'exact', head: true }),
         db.support_tickets.select('*', { count: 'exact', head: true }).eq('status', 'open')
       ])
 
