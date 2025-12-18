@@ -81,18 +81,11 @@ export const AuthProvider = ({ children }) => {
       console.log('🔍 Fetching user profile for ID:', userId)
       const startTime = performance.now()
       
-      // Race between the query and a timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout after 3 seconds')), 3000)
-      )
-      
-      const queryPromise = supabase
+      const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone, role, address, staff_type, is_verified, created_at')
+        .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
         .eq('id', userId)
         .single()
-
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
 
       const endTime = performance.now()
       console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
@@ -115,8 +108,7 @@ export const AuthProvider = ({ children }) => {
       console.log('⚠️ Using session fallback - app will work with limited data')
       
       // Fallback: create basic user from existing session state
-      // Don't call getSession() again - use the session we already have
-      const currentSession = session || (await supabase.auth.getSession().catch(() => ({ data: { session: null } }))).data.session
+      const currentSession = session
       
       if (currentSession?.user) {
         const basicUser = {
