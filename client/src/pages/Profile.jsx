@@ -165,9 +165,9 @@ const Profile = () => {
     }
   };
 
+  // PrivateRoute already handles auth, no need to redirect here
   if (!user) {
-    navigate('/login');
-    return null;
+    return <LoadingSpinner />;
   }
 
   return (

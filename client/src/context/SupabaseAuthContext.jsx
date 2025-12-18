@@ -114,30 +114,23 @@ export const AuthProvider = ({ children }) => {
       console.error('❌ Error fetching user profile:', error.message)
       console.log('⚠️ Using session fallback - app will work with limited data')
       
-      // Fallback: create basic user from auth session
-      try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Session timeout')), 1000))
-        ])
-        
-        if (session?.user) {
-          const basicUser = {
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-            role: session.user.user_metadata?.role || 'patient',
-            phone: session.user.user_metadata?.phone || '',
-            created_at: session.user.created_at
-          }
-          console.log('✅ Fallback user created:', basicUser.name)
-          setUser(basicUser)
-        } else {
-          console.error('❌ No session available for fallback')
-          setUser(null)
+      // Fallback: create basic user from existing session state
+      // Don't call getSession() again - use the session we already have
+      const currentSession = session || (await supabase.auth.getSession().catch(() => ({ data: { session: null } }))).data.session
+      
+      if (currentSession?.user) {
+        const basicUser = {
+          id: currentSession.user.id,
+          email: currentSession.user.email,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+          role: currentSession.user.user_metadata?.role || 'patient',
+          phone: currentSession.user.user_metadata?.phone || '',
+          created_at: currentSession.user.created_at
         }
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError.message)
+        console.log('✅ Fallback user created:', basicUser.name)
+        setUser(basicUser)
+      } else {
+        console.error('❌ No session available for fallback')
         setUser(null)
       }
       setLoading(false)

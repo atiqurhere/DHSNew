@@ -14,9 +14,9 @@ const Login = () => {
   const { user, signIn, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (only from login page)
   useEffect(() => {
-    if (user) {
+    if (user && window.location.pathname === '/login') {
       if (user.role === 'patient') {
         navigate('/patient/dashboard');
       } else if (user.role === 'staff') {

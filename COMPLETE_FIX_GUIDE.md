@@ -124,13 +124,23 @@ USING ((storage.foldername(name))[1] = auth.uid()::text);
 -- 3. FIX PAGE_CONTENT TABLE
 -- ============================================
 
--- Add missing slug column
-ALTER TABLE page_content 
-ADD COLUMN IF NOT EXISTS slug TEXT;
+-- Add slug column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'page_content' AND column_name = 'slug'
+    ) THEN
+        ALTER TABLE page_content ADD COLUMN slug TEXT;
+    END IF;
 
--- Add is_published column if it doesn't exist
-ALTER TABLE page_content 
-ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT true;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'page_content' AND column_name = 'is_published'
+    ) THEN
+        ALTER TABLE page_content ADD COLUMN is_published BOOLEAN DEFAULT true;
+    END IF;
+END $$;
 
 -- Update existing rows with slugs
 UPDATE page_content 
@@ -142,18 +152,22 @@ ALTER TABLE page_content
 ALTER COLUMN slug SET NOT NULL;
 
 -- Add unique constraint
-ALTER TABLE page_content
-ADD CONSTRAINT page_content_slug_unique UNIQUE (slug);
+DO $$ 
+BEGIN
+    ALTER TABLE page_content ADD CONSTRAINT page_content_slug_unique UNIQUE (slug);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create index for faster slug lookups
+-- Create indexes
 CREATE INDEX IF NOT EXISTS idx_page_content_slug ON page_content(slug);
 CREATE INDEX IF NOT EXISTS idx_page_content_published ON page_content(is_published);
 
--- Insert default pages if they don't exist
-INSERT INTO page_content (page_type, slug, content, is_published)
+-- Insert default pages
+INSERT INTO page_content (page_type, slug, is_published)
 VALUES 
-  ('about', 'about', '{"sections": []}', true),
-  ('contact', 'contact', '{"sections": []}', true)
+  ('about', 'about', true),
+  ('contact', 'contact', true)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 4. CREATE INDEXES FOR PERFORMANCE
