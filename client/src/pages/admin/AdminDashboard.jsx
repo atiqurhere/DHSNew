@@ -34,6 +34,7 @@ const AdminDashboard = () => {
       }
       setStats(data);
     } catch (error) {
+      console.error('Stats fetch error:', error);
       toast.error('Error loading dashboard');
     } finally {
       setLoading(false);
@@ -44,6 +45,36 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // If stats failed to load, show error state
+  if (!stats) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+          <div className="card bg-red-50 border-l-4 border-red-500">
+            <div className="flex items-center space-x-3">
+              <div className="text-red-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-800">Failed to load dashboard stats</h3>
+                <p className="text-red-600">Please refresh the page or contact support if the problem persists.</p>
+              </div>
+            </div>
+            <button 
+              onClick={fetchStats}
+              className="mt-4 btn btn-primary"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

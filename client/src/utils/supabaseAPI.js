@@ -1056,7 +1056,7 @@ export const adminAPI = {
   // Users Management
   getAllUsers: async () => {
     try {
-      const { data, error } = await db.users
+      const { data, error } = await db.users()
         .select()
         .order('created_at', { ascending: false })
 
@@ -1090,7 +1090,7 @@ export const adminAPI = {
   // Staff Management
   verifyStaff: async (staffId) => {
     try {
-      const { data, error } = await db.users
+      const { data, error } = await db.users()
         .update({
           is_verified: true,
           verification_status: 'verified',
@@ -1117,27 +1117,48 @@ export const adminAPI = {
   // Dashboard Stats
   getStats: async () => {
     try {
-      const [
-        { count: totalUsers },
-        { count: totalBookings },
-        { count: totalPayments },
-        { count: pendingTickets }
-      ] = await Promise.all([
-        db.users().select('*', { count: 'exact', head: true }),
-        db.bookings().select('*', { count: 'exact', head: true }),
-        db.payments().select('*', { count: 'exact', head: true }),
-        db.support_tickets.select('*', { count: 'exact', head: true }).eq('status', 'open')
-      ])
+      // Get user counts by role
+      const { data: users } = await db.users().select('role')
+      const patients = users?.filter(u => u.role === 'patient').length || 0
+      const staff = users?.filter(u => u.role === 'staff' && u.is_verified).length || 0
+      const pendingStaff = users?.filter(u => u.role === 'staff' && !u.is_verified).length || 0
+
+      // Get booking stats
+      const { data: bookings } = await db.bookings().select('status')
+      const totalBookings = bookings?.length || 0
+      const pendingBookings = bookings?.filter(b => b.status === 'pending').length || 0
+
+      // Get payment stats
+      const { data: payments } = await db.payments().select('amount, status, created_at')
+      const totalRevenue = payments
+        ?.filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+      
+      const currentMonth = new Date().getMonth()
+      const monthlyRevenue = payments
+        ?.filter(p => p.status === 'completed' && new Date(p.created_at).getMonth() === currentMonth)
+        .reduce((sum, p) => sum + (p.amount || 0), 0) || 0
 
       return {
         data: {
-          totalUsers,
-          totalBookings,
-          totalPayments,
-          pendingTickets
+          users: {
+            total: users?.length || 0,
+            patients,
+            staff,
+            pendingStaff
+          },
+          bookings: {
+            total: totalBookings,
+            pending: pendingBookings
+          },
+          revenue: {
+            total: totalRevenue,
+            monthly: monthlyRevenue
+          }
         }
       }
     } catch (error) {
+      console.error('getStats error:', error)
       return { error: error.message }
     }
   }
@@ -1148,7 +1169,7 @@ export const adminAPI = {
 export const pagesAPI = {
   getBySlug: async (slug) => {
     try {
-      const { data, error } = await db.page_content
+      const { data, error } = await db.pageContent()
         .select()
         .eq('slug', slug)
         .eq('is_published', true)
@@ -1163,7 +1184,7 @@ export const pagesAPI = {
 
   update: async (id, updates) => {
     try {
-      const { data, error } = await db.page_content
+      const { data, error } = await db.pageContent()
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
 
