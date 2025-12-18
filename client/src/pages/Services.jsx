@@ -15,9 +15,17 @@ const Services = () => {
   const navigate = useNavigate();
 
   const fetchServices = async () => {
+    setLoading(true);
     try {
+      console.log('Fetching services...');
       const { data, error } = await servicesAPI.getAll();
-      if (error) throw new Error(error);
+      
+      if (error) {
+        console.error('Service API error:', error);
+        throw new Error(error);
+      }
+      
+      console.log('Services data received:', data);
       
       // If no services exist, seed the database
       if (!data || data.length === 0) {
@@ -35,6 +43,7 @@ const Services = () => {
               ? retry.data.filter(s => s.category === filter)
               : retry.data;
             setServices(filtered);
+            setLoading(false);
             return;
           }
         }
@@ -45,10 +54,11 @@ const Services = () => {
         ? data.filter(s => s.category === filter)
         : data;
       
+      console.log('Setting services:', filteredData);
       setServices(filteredData);
     } catch (error) {
       console.error('Error fetching services:', error);
-      toast.error('Failed to load services. Check console for details.');
+      toast.error(`Failed to load services: ${error.message}`);
     } finally {
       setLoading(false);
     }
