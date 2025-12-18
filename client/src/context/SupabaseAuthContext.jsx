@@ -29,7 +29,6 @@ export const AuthProvider = ({ children }) => {
       if (session?.user && !isInitialized) {
         console.log('👤 User found in session, fetching profile...')
         isInitialized = true
-        // Fetch full user profile from users table
         fetchUserProfile(session.user.id)
       } else if (!session) {
         console.log('❌ No user in session')
@@ -46,13 +45,11 @@ export const AuthProvider = ({ children }) => {
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
         
-        // Skip INITIAL_SESSION event if we already initialized
         if (event === 'INITIAL_SESSION' && isInitialized) {
           console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
           return
         }
         
-        // Skip SIGNED_IN if user already exists (prevents refetch on tab switch)
         if (event === 'SIGNED_IN' && user && session?.user?.id === user.id) {
           console.log('⏭️ Skipping SIGNED_IN - user already loaded')
           setSession(session)
@@ -62,7 +59,6 @@ export const AuthProvider = ({ children }) => {
         setSession(session)
         if (session?.user && event !== 'INITIAL_SESSION') {
           await fetchUserProfile(session.user.id)
-          // Don't set loading here - fetchUserProfile handles it
         } else if (!session) {
           setUser(null)
           setLoading(false)
@@ -77,37 +73,16 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const fetchUserProfile = async (userId) => {
-    // Prevent duplicate fetches
     if (isFetchingProfile) {
       console.log('⏭️ Profile fetch already in progress, skipping...')
       return
     }
 
     setIsFetchingProfile(true)
+    console.log('🔍 Fetching user profile from database...')
+    const startTime = performance.now()
     
-    // TEMPORARY FIX: Use session data immediately, fetch DB data in background
-    console.log('� FAST MODE: Using session data immediately')
-    const currentSession = session
-    
-    if (currentSession?.user) {
-      const basicUser = {
-        id: currentSession.user.id,
-        email: currentSession.user.email,
-        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
-        role: currentSession.user.user_metadata?.role || 'patient',
-        phone: currentSession.user.user_metadata?.phone || '',
-        created_at: currentSession.user.created_at
-      }
-      console.log('✅ User loaded from session:', basicUser.name)
-      setUser(basicUser)
-      setLoading(false)
-    }
-    
-    // Then fetch full profile in background (non-blocking)
     try {
-      console.log('🔍 Fetching full profile in background for ID:', userId)
-      const startTime = performance.now()
-      
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
@@ -115,26 +90,50 @@ export const AuthProvider = ({ children }) => {
         .single()
 
       const endTime = performance.now()
-      console.log(`⏱️ Background profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
+      console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
 
       if (error) {
-        console.warn('⚠️ Background profile fetch failed:', error.message)
-        // Don't throw - we already have session data
-      } else if (data) {
-        console.log('✅ Full profile loaded, updating user data:', data.name)
-        setUser(data) // Update with full data
+        console.error('❌ Database fetch failed:', error.message)
+        throw error
       }
-    } catch (error) {
-      console.warn('⚠️ Background profile fetch error:', error.message)
-      // Don't throw - we already have session data working
-    } finally {
-      setIsFetchingProfile(false)
+      
+      if (data) {
+        console.log('✅ Full profile loaded from DB:', data.name, `(${data.role})`)
+        setUser(data)
+        setLoading(false)
+        setIsFetchingProfile(false)
+        return
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Database fetch failed, using session fallback:', dbError.message)
+      
+      // Fallback: Use session metadata
+      const currentSession = session
+      
+      if (currentSession?.user) {
+        const basicUser = {
+          id: currentSession.user.id,
+          email: currentSession.user.email,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+          role: currentSession.user.user_metadata?.role || 'patient',
+          phone: currentSession.user.user_metadata?.phone || '',
+          created_at: currentSession.user.created_at
+        }
+        console.log('✅ User loaded from session metadata:', basicUser.name, `(${basicUser.role})`)
+        setUser(basicUser)
+        setLoading(false)
+      } else {
+        console.error('❌ No session available for fallback')
+        setUser(null)
+        setLoading(false)
+      }
     }
+    
+    setIsFetchingProfile(false)
   }
 
   const signUp = async ({ name, email, password, phone, role = 'patient', address, staffType }) => {
     try {
-      // 1. Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -149,7 +148,6 @@ export const AuthProvider = ({ children }) => {
 
       if (authError) throw authError
 
-      // 2. Create user profile in public.users table
       if (authData.user) {
         const userData = {
           id: authData.user.id,
@@ -162,7 +160,6 @@ export const AuthProvider = ({ children }) => {
           created_at: new Date().toISOString()
         }
 
-        // Add staff-specific fields
         if (role === 'staff') {
           userData.staff_type = staffType
           userData.is_verified = false
@@ -175,7 +172,6 @@ export const AuthProvider = ({ children }) => {
 
         if (dbError) throw dbError
 
-        // 3. Create welcome notification
         await supabase.from('notifications').insert({
           user_id: authData.user.id,
           title: 'Welcome to DHS Healthcare',
@@ -184,9 +180,7 @@ export const AuthProvider = ({ children }) => {
           is_read: false
         })
 
-        // 4. If staff, notify admins
         if (role === 'staff') {
-          // Get all admins
           const { data: admins } = await supabase
             .from('users')
             .select('id')
@@ -224,7 +218,6 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
 
-      // Check if staff is verified
       if (data.user) {
         const { data: userProfile } = await supabase
           .from('users')
@@ -251,7 +244,6 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
       setUser(null)
       setSession(null)
-      // Clear all cached data on logout
       cacheManager.clear()
     } catch (error) {
       console.error('Sign out error:', error)
@@ -270,7 +262,6 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
 
-      // Refresh user profile
       await fetchUserProfile(user.id)
     } catch (error) {
       console.error('Update profile error:', error)
@@ -280,7 +271,6 @@ export const AuthProvider = ({ children }) => {
 
   const updatePassword = async (currentPassword, newPassword) => {
     try {
-      // Verify current password by trying to sign in
       const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: currentPassword
@@ -288,7 +278,6 @@ export const AuthProvider = ({ children }) => {
 
       if (verifyError) throw new Error('Current password is incorrect')
 
-      // Update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
