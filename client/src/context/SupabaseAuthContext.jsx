@@ -82,6 +82,25 @@ export const AuthProvider = ({ children }) => {
     console.log('🔍 Fetching user profile from database...')
     const startTime = performance.now()
     
+    // SESSION-FIRST APPROACH: Load session immediately, then try DB
+    const currentSession = session
+    
+    if (currentSession?.user) {
+      // Immediately load from session (INSTANT)
+      const sessionUser = {
+        id: currentSession.user.id,
+        email: currentSession.user.email,
+        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+        role: currentSession.user.user_metadata?.role || 'patient',
+        phone: currentSession.user.user_metadata?.phone || '',
+        created_at: currentSession.user.created_at
+      }
+      console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
+      setUser(sessionUser)
+      setLoading(false)
+    }
+    
+    // Then try to upgrade with database data
     try {
       const { data, error } = await supabase
         .from('users')
@@ -90,43 +109,16 @@ export const AuthProvider = ({ children }) => {
         .single()
 
       const endTime = performance.now()
-      console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
+      console.log(`⏱️ Database fetch took ${(endTime - startTime).toFixed(2)}ms`)
 
       if (error) {
-        console.error('❌ Database fetch failed:', error.message)
-        throw error
-      }
-      
-      if (data) {
-        console.log('✅ Full profile loaded from DB:', data.name, `(${data.role})`)
-        setUser(data)
-        setLoading(false)
-        setIsFetchingProfile(false)
-        return
+        console.warn('⚠️ Database fetch failed:', error.message, '- Using session data')
+      } else if (data) {
+        console.log('✅ Upgraded to full profile from DB:', data.name, `(${data.role})`)
+        setUser(data) // Upgrade to full data
       }
     } catch (dbError) {
-      console.warn('⚠️ Database fetch failed, using session fallback:', dbError.message)
-      
-      // Fallback: Use session metadata
-      const currentSession = session
-      
-      if (currentSession?.user) {
-        const basicUser = {
-          id: currentSession.user.id,
-          email: currentSession.user.email,
-          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
-          role: currentSession.user.user_metadata?.role || 'patient',
-          phone: currentSession.user.user_metadata?.phone || '',
-          created_at: currentSession.user.created_at
-        }
-        console.log('✅ User loaded from session metadata:', basicUser.name, `(${basicUser.role})`)
-        setUser(basicUser)
-        setLoading(false)
-      } else {
-        console.error('❌ No session available for fallback')
-        setUser(null)
-        setLoading(false)
-      }
+      console.warn('⚠️ Database error:', dbError.message, '- Continuing with session data')
     }
     
     setIsFetchingProfile(false)
