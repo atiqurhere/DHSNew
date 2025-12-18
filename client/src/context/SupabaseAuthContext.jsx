@@ -16,19 +16,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false)
 
   useEffect(() => {
     console.log('🔄 AuthProvider: Initializing auth check...')
+    let isInitialized = false
     
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('📋 Session check result:', session ? 'Session found' : 'No session')
       setSession(session)
-      if (session?.user) {
+      if (session?.user && !isInitialized) {
         console.log('👤 User found in session, fetching profile...')
+        isInitialized = true
         // Fetch full user profile from users table
         fetchUserProfile(session.user.id)
-      } else {
+      } else if (!session) {
         console.log('❌ No user in session')
         setUser(null)
         setLoading(false)
@@ -42,11 +45,18 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
+        
+        // Skip INITIAL_SESSION event if we already initialized
+        if (event === 'INITIAL_SESSION' && isInitialized) {
+          console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
+          return
+        }
+        
         setSession(session)
-        if (session?.user) {
+        if (session?.user && event !== 'INITIAL_SESSION') {
           await fetchUserProfile(session.user.id)
           // Don't set loading here - fetchUserProfile handles it
-        } else {
+        } else if (!session) {
           setUser(null)
           setLoading(false)
         }

@@ -7,6 +7,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { FaCalendar, FaClipboardList, FaHeart } from 'react-icons/fa';
 
 const PatientDashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     upcoming: 0,
     completed: 0,
@@ -16,10 +17,17 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (user?.id) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   const fetchDashboardData = async () => {
+    if (!user?.id) {
+      console.log('No user ID available yet');
+      return;
+    }
+    
     try {
       const { data, error } = await bookingsAPI.getByUser(user.id);
       if (error) {
