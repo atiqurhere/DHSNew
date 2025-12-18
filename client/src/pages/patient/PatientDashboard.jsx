@@ -17,26 +17,38 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('📊 Dashboard useEffect triggered, user?.id:', user?.id);
     if (user?.id) {
+      console.log('✅ User ID exists, fetching dashboard data...');
       fetchDashboardData();
     } else {
+      console.log('⚠️ No user ID yet, setting loading to false');
       setLoading(false);
     }
   }, [user?.id]); // Only re-run when user ID changes, not the whole user object
 
   const fetchDashboardData = async () => {
     if (!user?.id) {
-      console.log('No user ID available yet');
+      console.log('❌ No user ID available in fetchDashboardData');
+      setLoading(false);
       return;
     }
     
+    console.log('🔍 Fetching bookings for user:', user.id);
+    
     try {
       const { data, error } = await bookingsAPI.getByUser(user.id);
+      
+      console.log('📦 Bookings response:', { data, error });
+      
       if (error) {
-        console.error('API Error:', error);
+        console.error('❌ API Error:', error);
         toast.error(error);
+        setLoading(false);
         return;
       }
+      
+      console.log('✅ Bookings loaded:', data?.length, 'bookings');
       
       setStats({
         upcoming: data.filter(b => ['pending', 'accepted', 'assigned', 'in-progress'].includes(b.status)).length,
@@ -46,7 +58,8 @@ const PatientDashboard = () => {
       
       setRecentBookings(data.slice(0, 5));
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }

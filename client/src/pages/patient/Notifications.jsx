@@ -13,23 +13,38 @@ const Notifications = () => {
   const { user } = useAuth();
 
   const fetchNotifications = async () => {
+    if (!user?.id) {
+      console.log('❌ No user ID in fetchNotifications');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('🔍 Fetching notifications for user:', user.id);
+    
     try {
       const { data, error } = await notificationsAPI.getByUser(user.id);
+      
+      console.log('📦 Notifications response:', { data, error });
+      
       if (error) {
-        console.error('API Error:', error);
+        console.error('❌ API Error:', error);
         toast.error(error);
+        setLoading(false);
         return;
       }
       
+      console.log('✅ Notifications received:', data?.length, 'notifications');
+      
       // If no notifications exist, seed some welcome notifications
       if (!data || data.length === 0) {
-        console.log('No notifications found, seeding...');
+        console.log('⚠️ No notifications found, seeding...');
         const seedResult = await seedNotifications(user.id);
         if (!seedResult.error) {
           // Retry fetching
           const retry = await notificationsAPI.getByUser(user.id);
           if (!retry.error && retry.data) {
             setNotifications(retry.data);
+            setLoading(false);
             return;
           }
         }
@@ -37,7 +52,7 @@ const Notifications = () => {
       
       setNotifications(data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ Error fetching notifications:', error);
       toast.error('Error fetching notifications');
     } finally {
       setLoading(false);
@@ -46,12 +61,15 @@ const Notifications = () => {
 
   // Fetch notifications once when user is available
   useEffect(() => {
+    console.log('🔔 Notifications useEffect triggered, user?.id:', user?.id);
     let mounted = true;
     
     const loadNotifications = async () => {
       if (user?.id && mounted) {
+        console.log('✅ User ID exists, fetching notifications...');
         await fetchNotifications();
       } else if (!user) {
+        console.log('⚠️ No user yet, setting loading to false');
         setLoading(false);
       }
     };
