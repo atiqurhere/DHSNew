@@ -7,30 +7,32 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { FaCalendar, FaClipboardList, FaHeart } from 'react-icons/fa';
 
 const PatientDashboard = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState({
     upcoming: 0,
     completed: 0,
     total: 0
   });
   const [recentBookings, setRecentBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    console.log('📊 Dashboard useEffect triggered, user?.id:', user?.id);
+    console.log('📊 Dashboard useEffect triggered, user?.id:', user?.id, 'authLoading:', authLoading);
     if (user?.id) {
       console.log('✅ User ID exists, fetching dashboard data...');
       fetchDashboardData();
-    } else {
-      console.log('⚠️ No user ID yet, setting loading to false');
-      setLoading(false);
+    } else if (!authLoading) {
+      // Auth finished but no user = not logged in
+      console.log('⚠️ Auth finished but no user');
+      setDataLoading(false);
     }
-  }, [user?.id]); // Only re-run when user ID changes, not the whole user object
+    // If authLoading is true and no user, keep dataLoading true (wait for auth)
+  }, [user?.id, authLoading]); // Re-run when user ID or auth loading state changes
 
   const fetchDashboardData = async () => {
     if (!user?.id) {
       console.log('❌ No user ID available in fetchDashboardData');
-      setLoading(false);
+      setDataLoading(false);
       return;
     }
     
@@ -44,7 +46,7 @@ const PatientDashboard = () => {
       if (error) {
         console.error('❌ API Error:', error);
         toast.error(error);
-        setLoading(false);
+        setDataLoading(false);
         return;
       }
       
@@ -61,7 +63,7 @@ const PatientDashboard = () => {
       console.error('❌ Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -78,7 +80,7 @@ const PatientDashboard = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
