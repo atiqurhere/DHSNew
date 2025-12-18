@@ -49,9 +49,9 @@ const Notifications = () => {
     let mounted = true;
     
     const loadNotifications = async () => {
-      if (user && mounted) {
+      if (user?.id && mounted) {
         await fetchNotifications();
-      } else {
+      } else if (!user) {
         setLoading(false);
       }
     };
@@ -61,7 +61,7 @@ const Notifications = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.id]); // Only re-fetch when user ID changes
+  }, [user?.id]); // Only re-fetch when user ID changes, not the whole user object
 
   const markAsRead = async (id) => {
     try {

@@ -19,8 +19,10 @@ const PatientDashboard = () => {
   useEffect(() => {
     if (user?.id) {
       fetchDashboardData();
+    } else {
+      setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // Only re-run when user ID changes, not the whole user object
 
   const fetchDashboardData = async () => {
     if (!user?.id) {
