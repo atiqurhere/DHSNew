@@ -225,7 +225,7 @@ export const servicesAPI = {
 export const bookingsAPI = {
   getAll: async () => {
     try {
-      const { data, error } = await db.bookings
+      const { data, error } = await db.bookings()
         .select('*, patient:users!patient_id(*), service:services(*), staff:users!staff_id(*)')
         .order('created_at', { ascending: false })
 
@@ -238,7 +238,7 @@ export const bookingsAPI = {
 
   getByUser: async (userId) => {
     try {
-      const { data, error } = await db.bookings
+      const { data, error } = await db.bookings()
         .select('*, service:services(*), staff:users!staff_id(*)')
         .eq('patient_id', userId)
         .order('created_at', { ascending: false })
@@ -252,7 +252,7 @@ export const bookingsAPI = {
 
   getById: async (id) => {
     try {
-      const { data, error } = await db.bookings
+      const { data, error } = await db.bookings()
         .select('*, patient:users!patient_id(*), service:services(*), staff:users!staff_id(*)')
         .eq('id', id)
         .single()
@@ -291,7 +291,7 @@ export const bookingsAPI = {
 
   update: async (id, updates) => {
     try {
-      const { data, error } = await db.bookings
+      const { data, error } = await db.bookings()
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
 
@@ -304,7 +304,7 @@ export const bookingsAPI = {
 
   cancel: async (id, reason) => {
     try {
-      const { data, error } = await db.bookings
+      const { data, error } = await db.bookings()
         .update({
           status: 'cancelled',
           cancellation_reason: reason,
@@ -325,7 +325,7 @@ export const bookingsAPI = {
 export const paymentsAPI = {
   getAll: async () => {
     try {
-      const { data, error } = await db.payments
+      const { data, error } = await db.payments()
         .select('*, booking:bookings(*), user:users(*)')
         .order('created_at', { ascending: false })
 
@@ -338,7 +338,7 @@ export const paymentsAPI = {
 
   getByUser: async (userId) => {
     try {
-      const { data, error } = await db.payments
+      const { data, error } = await db.payments()
         .select('*, booking:bookings(*)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
