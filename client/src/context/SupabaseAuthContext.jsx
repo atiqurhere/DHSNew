@@ -85,72 +85,49 @@ export const AuthProvider = ({ children }) => {
 
     setIsFetchingProfile(true)
     
+    // TEMPORARY FIX: Use session data immediately, fetch DB data in background
+    console.log('� FAST MODE: Using session data immediately')
+    const currentSession = session
+    
+    if (currentSession?.user) {
+      const basicUser = {
+        id: currentSession.user.id,
+        email: currentSession.user.email,
+        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+        role: currentSession.user.user_metadata?.role || 'patient',
+        phone: currentSession.user.user_metadata?.phone || '',
+        created_at: currentSession.user.created_at
+      }
+      console.log('✅ User loaded from session:', basicUser.name)
+      setUser(basicUser)
+      setLoading(false)
+    }
+    
+    // Then fetch full profile in background (non-blocking)
     try {
-      console.log('🔍 Fetching user profile for ID:', userId)
+      console.log('🔍 Fetching full profile in background for ID:', userId)
       const startTime = performance.now()
       
-      // Use timeout to prevent hanging
-      const timeoutMs = 10000 // 10 seconds
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-      
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
-          .eq('id', userId)
-          .abortSignal(controller.signal)
-          .single()
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
+        .eq('id', userId)
+        .single()
 
-        clearTimeout(timeoutId)
-        const endTime = performance.now()
-        console.log(`⏱️ Profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
+      const endTime = performance.now()
+      console.log(`⏱️ Background profile fetch took ${(endTime - startTime).toFixed(2)}ms`)
 
-        if (error) {
-          console.error('❌ Profile fetch error:', error)
-          throw error
-        }
-        
-        if (!data) {
-          console.error('❌ No user data returned')
-          throw new Error('No user data')
-        }
-        
-        console.log('✅ User profile loaded:', data.name)
-        setUser(data)
-        setLoading(false)
-        setIsFetchingProfile(false)
-      } catch (fetchError) {
-        clearTimeout(timeoutId)
-        if (fetchError.name === 'AbortError') {
-          console.error(`❌ Profile fetch timeout after ${timeoutMs}ms`)
-          throw new Error(`Profile fetch timeout after ${timeoutMs}ms`)
-        }
-        throw fetchError
+      if (error) {
+        console.warn('⚠️ Background profile fetch failed:', error.message)
+        // Don't throw - we already have session data
+      } else if (data) {
+        console.log('✅ Full profile loaded, updating user data:', data.name)
+        setUser(data) // Update with full data
       }
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error.message)
-      console.log('⚠️ Using session fallback - app will work with limited data')
-      
-      // Fallback: create basic user from existing session state
-      const currentSession = session
-      
-      if (currentSession?.user) {
-        const basicUser = {
-          id: currentSession.user.id,
-          email: currentSession.user.email,
-          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
-          role: currentSession.user.user_metadata?.role || 'patient',
-          phone: currentSession.user.user_metadata?.phone || '',
-          created_at: currentSession.user.created_at
-        }
-        console.log('✅ Fallback user created:', basicUser.name)
-        setUser(basicUser)
-      } else {
-        console.error('❌ No session available for fallback')
-        setUser(null)
-      }
-      setLoading(false)
+      console.warn('⚠️ Background profile fetch error:', error.message)
+      // Don't throw - we already have session data working
+    } finally {
       setIsFetchingProfile(false)
     }
   }
