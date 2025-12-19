@@ -7,6 +7,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { seedServices } from '../utils/seedSupabase';
 
+const isDev = import.meta.env.DEV;
+
 const Services = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,24 +19,24 @@ const Services = () => {
   const fetchServices = async () => {
     setLoading(true);
     try {
-      console.log('🏥 Fetching services...');
+      if (isDev) console.log('🏥 Fetching services...');
       const startTime = performance.now();
-      
+
       const { data, error } = await servicesAPI.getAll();
-      
+
       const endTime = performance.now();
-      console.log(`⏱️ Services fetch took ${(endTime - startTime).toFixed(2)}ms`);
-      
+      if (isDev) console.log(`⏱️ Services fetch took ${(endTime - startTime).toFixed(2)}ms`);
+
       if (error) {
         console.error('❌ Service API error:', error);
         throw new Error(error);
       }
-      
-      console.log('✅ Services data received:', data?.length, 'services');
-      
+
+      if (isDev) console.log('✅ Services data received:', data?.length, 'services');
+
       // If no services exist, seed the database
       if (!data || data.length === 0) {
-        console.log('⚠️ No services found, seeding database...');
+        if (isDev) console.log('⚠️ No services found, seeding database...');
         const seedResult = await seedServices();
         if (seedResult.error) {
           console.error('❌ Seed error:', seedResult.error);
@@ -44,7 +46,7 @@ const Services = () => {
           // Retry fetching
           const retry = await servicesAPI.getAll();
           if (!retry.error && retry.data) {
-            const filtered = filter !== 'all' 
+            const filtered = filter !== 'all'
               ? retry.data.filter(s => s.category === filter)
               : retry.data;
             setServices(filtered);
@@ -53,13 +55,13 @@ const Services = () => {
           }
         }
       }
-      
+
       // Filter by category if needed
-      const filteredData = filter !== 'all' 
+      const filteredData = filter !== 'all'
         ? data.filter(s => s.category === filter)
         : data;
-      
-      console.log('📝 Setting services:', filteredData?.length, 'after filter');
+
+      if (isDev) console.log('📝 Setting services:', filteredData?.length, 'after filter');
       setServices(filteredData);
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -72,15 +74,15 @@ const Services = () => {
   // Fetch services on mount and filter change
   useEffect(() => {
     let mounted = true;
-    
+
     const loadServices = async () => {
       if (mounted) {
         await fetchServices();
       }
     };
-    
+
     loadServices();
-    
+
     return () => {
       mounted = false;
     };
@@ -126,11 +128,10 @@ const Services = () => {
             <button
               key={cat.value}
               onClick={() => setFilter(cat.value)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === cat.value
+              className={`px-4 py-2 rounded-lg font-medium transition ${filter === cat.value
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
             >
               {cat.label}
             </button>

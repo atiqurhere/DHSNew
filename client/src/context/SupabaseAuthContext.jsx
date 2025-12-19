@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { cacheManager } from '../utils/cache'
 
+const isDev = import.meta.env.DEV;
 const AuthContext = createContext({})
 
 export const useAuth = () => {
@@ -20,17 +21,17 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (userId, userSession) => {
     if (isFetchingProfile) {
-      console.log('⏭️ Profile fetch already in progress, skipping...')
+      if (isDev) console.log('⏭️ Profile fetch already in progress, skipping...')
       return
     }
 
     setIsFetchingProfile(true)
-    console.log('🔍 Fetching user profile from database...')
+    if (isDev) console.log('🔍 Fetching user profile from database...')
     const startTime = performance.now()
-    
+
     // SESSION-FIRST APPROACH: Load session immediately, then try DB
     const currentSession = userSession || session
-    
+
     if (currentSession?.user) {
       // Immediately load from session (INSTANT)
       const sessionUser = {
@@ -41,7 +42,7 @@ export const AuthProvider = ({ children }) => {
         phone: currentSession.user.user_metadata?.phone || '',
         created_at: currentSession.user.created_at
       }
-      console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
+      if (isDev) console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
       setUser(sessionUser)
       setLoading(false)
     } else {
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }) => {
       setIsFetchingProfile(false)
       return
     }
-    
+
     // Then try to upgrade with database data
     try {
       const { data, error } = await supabase
@@ -61,35 +62,35 @@ export const AuthProvider = ({ children }) => {
         .single()
 
       const endTime = performance.now()
-      console.log(`⏱️ Database fetch took ${(endTime - startTime).toFixed(2)}ms`)
+      if (isDev) console.log(`⏱️ Database fetch took ${(endTime - startTime).toFixed(2)}ms`)
 
       if (error) {
         console.warn('⚠️ Database fetch failed:', error.message, '- Using session data')
       } else if (data) {
-        console.log('✅ Upgraded to full profile from DB:', data.name, `(${data.role})`)
+        if (isDev) console.log('✅ Upgraded to full profile from DB:', data.name, `(${data.role})`)
         setUser(data) // Upgrade to full data
       }
     } catch (dbError) {
       console.warn('⚠️ Database error:', dbError.message, '- Continuing with session data')
     }
-    
+
     setIsFetchingProfile(false)
   }
 
   useEffect(() => {
-    console.log('🔄 AuthProvider: Initializing auth check...')
+    if (isDev) console.log('🔄 AuthProvider: Initializing auth check...')
     let isInitialized = false
-    
+
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('📋 Session check result:', session ? 'Session found' : 'No session')
+      if (isDev) console.log('📋 Session check result:', session ? 'Session found' : 'No session')
       setSession(session)
       if (session?.user && !isInitialized) {
-        console.log('👤 User found in session, fetching profile...')
+        if (isDev) console.log('👤 User found in session, fetching profile...')
         isInitialized = true
         fetchUserProfile(session.user.id, session)
       } else if (!session) {
-        console.log('❌ No user in session')
+        if (isDev) console.log('❌ No user in session')
         setUser(null)
         setLoading(false)
       }
@@ -101,18 +102,18 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
-        
+        if (isDev) console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session')
+
         if (event === 'INITIAL_SESSION' && isInitialized) {
-          console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
+          if (isDev) console.log('⏭️ Skipping INITIAL_SESSION - already initialized')
           return
         }
-        
+
         setSession(session)
-        
+
         if (session?.user) {
           if (event === 'SIGNED_IN' && user && session.user.id === user.id) {
-            console.log('⏭️ Skipping SIGNED_IN - user already loaded')
+            if (isDev) console.log('⏭️ Skipping SIGNED_IN - user already loaded')
             return
           }
           if (event !== 'INITIAL_SESSION') {
@@ -126,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     )
 
     return () => {
-      console.log('🧹 AuthProvider: Cleaning up subscription')
+      if (isDev) console.log('🧹 AuthProvider: Cleaning up subscription')
       subscription.unsubscribe()
     }
   }, [])
