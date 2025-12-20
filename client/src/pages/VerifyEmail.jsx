@@ -10,7 +10,10 @@ const VerifyEmail = () => {
   const [email, setEmail] = useState(location.state?.email || '');
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [resendCount, setResendCount] = useState(0);
+  const [resendCount, setResendCount] = useState(() => {
+    const saved = localStorage.getItem('resendCount');
+    return saved ? parseInt(saved, 10) : 0;
+  });
 
   useEffect(() => {
     // If no email in state, redirect to register
@@ -19,8 +22,19 @@ const VerifyEmail = () => {
       return;
     }
 
-    // Start initial timer
-    setResendTimer(60);
+    // Check if there's a saved timer end time in localStorage
+    const savedTimerEnd = localStorage.getItem('resendTimerEnd');
+    if (savedTimerEnd) {
+      const endTime = parseInt(savedTimerEnd, 10);
+      const now = Date.now();
+      const remainingSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
+      setResendTimer(remainingSeconds);
+    } else {
+      // Start initial timer
+      const endTime = Date.now() + 60000; // 60 seconds from now
+      localStorage.setItem('resendTimerEnd', endTime.toString());
+      setResendTimer(60);
+    }
   }, [location.state, navigate]);
 
   // Countdown timer
@@ -28,6 +42,9 @@ const VerifyEmail = () => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
       return () => clearTimeout(timer);
+    } else {
+      // Clear the timer from localStorage when it reaches 0
+      localStorage.removeItem('resendTimerEnd');
     }
   }, [resendTimer]);
 
@@ -55,8 +72,14 @@ const VerifyEmail = () => {
         autoClose: 5000,
       });
 
-      setResendCount(resendCount + 1);
-      setResendTimer(60); // Reset timer to 60 seconds
+      const newCount = resendCount + 1;
+      setResendCount(newCount);
+      localStorage.setItem('resendCount', newCount.toString());
+
+      // Set new timer end time
+      const endTime = Date.now() + 60000; // 60 seconds from now
+      localStorage.setItem('resendTimerEnd', endTime.toString());
+      setResendTimer(60);
     } catch (error) {
       console.error('Resend error:', error);
       toast.error(error.message || 'Failed to resend verification email');
@@ -145,11 +168,10 @@ const VerifyEmail = () => {
           <button
             onClick={handleResendEmail}
             disabled={loading || resendTimer > 0}
-            className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-              resendTimer > 0 || loading
+            className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${resendTimer > 0 || loading
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105'
-            }`}
+              }`}
           >
             {loading ? (
               <>
