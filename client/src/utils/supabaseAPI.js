@@ -181,10 +181,10 @@ export const servicesAPI = {
     try {
       const { data, error } = await db.services().insert(serviceData)
       if (error) throw error
-      
+
       // Invalidate services cache
       cacheManager.invalidatePattern(/^service/)
-      
+
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -195,10 +195,10 @@ export const servicesAPI = {
     try {
       const { data, error } = await db.services().update(updates).eq('id', id)
       if (error) throw error
-      
+
       // Invalidate services cache
       cacheManager.invalidatePattern(/^service/)
-      
+
       return { data }
     } catch (error) {
       return { error: error.message }
@@ -209,10 +209,10 @@ export const servicesAPI = {
     try {
       const { error } = await db.services().delete().eq('id', id)
       if (error) throw error
-      
+
       // Invalidate services cache
       cacheManager.invalidatePattern(/^service/)
-      
+
       return { data: { message: 'Service deleted successfully' } }
     } catch (error) {
       return { error: error.message }
@@ -226,7 +226,7 @@ export const bookingsAPI = {
   getAll: async () => {
     try {
       const { data, error } = await db.bookings()
-        .select('*, patient:users!patient_id(*), service:services(*), staff:users!staff_id(*)')
+        .select('*, patient:users!user_id(*), service:services(*), staff:users!staff_id(*)')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -240,7 +240,7 @@ export const bookingsAPI = {
     try {
       const { data, error } = await db.bookings()
         .select('*, service:services(*), staff:users!staff_id(*)')
-        .eq('patient_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -253,7 +253,7 @@ export const bookingsAPI = {
   getById: async (id) => {
     try {
       const { data, error } = await db.bookings()
-        .select('*, patient:users!patient_id(*), service:services(*), staff:users!staff_id(*)')
+        .select('*, patient:users!user_id(*), service:services(*), staff:users!staff_id(*)')
         .eq('id', id)
         .single()
 
@@ -275,9 +275,9 @@ export const bookingsAPI = {
 
       // Create notification for patient
       await db.notifications().insert({
-        user_id: bookingData.patient_id,
+        user_id: bookingData.user_id,
         title: 'Booking Confirmed',
-        message: `Your appointment has been scheduled for ${new Date(bookingData.appointment_date).toLocaleDateString()}`,
+        message: `Your appointment has been scheduled for ${new Date(bookingData.booking_date).toLocaleDateString()}`,
         type: 'booking_confirmation',
         related_id: data[0].id,
         related_model: 'bookings'
@@ -367,7 +367,7 @@ export const paymentsAPI = {
   updateStatus: async (id, status, transactionId = null) => {
     try {
       const updates = {
-        payment_status: status,
+        status: status,
         updated_at: new Date().toISOString()
       }
 
@@ -413,10 +413,10 @@ export const notificationsAPI = {
         .eq('id', id)
 
       if (error) throw error
-      
+
       // Invalidate notification cache when marking as read
       cacheManager.invalidatePattern(/^notifications:/)
-      
+
       return { data: { message: 'Notification marked as read' } }
     } catch (error) {
       return { error: error.message }
@@ -430,10 +430,10 @@ export const notificationsAPI = {
         .eq('user_id', userId)
 
       if (error) throw error
-      
+
       // Invalidate notification cache
       cacheManager.invalidate(`notifications:user:${userId}`)
-      
+
       return { data: { message: 'All notifications marked as read' } }
     } catch (error) {
       return { error: error.message }
@@ -444,10 +444,10 @@ export const notificationsAPI = {
     try {
       const { error } = await db.notifications().delete().eq('id', id)
       if (error) throw error
-      
+
       // Invalidate notification cache
       cacheManager.invalidatePattern(/^notifications:/)
-      
+
       return { data: { message: 'Notification deleted' } }
     } catch (error) {
       return { error: error.message }
@@ -533,7 +533,7 @@ export const supportAPI = {
 
       // Notify admins
       const { data: admins } = await db.users().select('id').eq('role', 'admin')
-      
+
       if (admins && admins.length > 0) {
         const notifications = admins.map(admin => ({
           user_id: admin.id,
@@ -603,7 +603,7 @@ export const chatbotAPI = {
     try {
       // Normalize message for better matching
       const normalizedMessage = message.toLowerCase().trim()
-      
+
       // Search for matching response using keywords
       const { data, error } = await db.chatbot_responses
         .select()
@@ -620,7 +620,7 @@ export const chatbotAPI = {
         for (const response of data) {
           const keywords = response.keywords || ''
           const keywordArray = keywords.toLowerCase().split(',').map(k => k.trim())
-          
+
           let score = 0
           for (const keyword of keywordArray) {
             if (normalizedMessage.includes(keyword)) {
@@ -638,7 +638,7 @@ export const chatbotAPI = {
       if (bestMatch) {
         // Generate follow-up options based on category
         const followUpOptions = generateFollowUpOptions(bestMatch.category)
-        
+
         return {
           data: {
             response: bestMatch.response,
@@ -868,8 +868,8 @@ export const telegramAPI = {
       return {
         data: {
           available: data && data.length > 0,
-          message: data && data.length > 0 
-            ? 'Agents are available' 
+          message: data && data.length > 0
+            ? 'Agents are available'
             : 'No agents available at the moment'
         }
       }
@@ -1133,7 +1133,7 @@ export const adminAPI = {
       const totalRevenue = payments
         ?.filter(p => p.status === 'completed')
         .reduce((sum, p) => sum + (p.amount || 0), 0) || 0
-      
+
       const currentMonth = new Date().getMonth()
       const monthlyRevenue = payments
         ?.filter(p => p.status === 'completed' && new Date(p.created_at).getMonth() === currentMonth)

@@ -36,6 +36,9 @@ Open the Supabase SQL Editor and run these files in order:
 -- Edit admin.sql with your email, then run it
 ```
 
+> [!NOTE]
+> The schema.sql file now includes all necessary tables and columns. If you previously ran an older version, you can safely drop all tables and run the new schema.sql, or manually add missing columns by comparing with the current schema.
+
 ### 3. Configure Storage
 
 1. Go to Supabase Dashboard → Storage
@@ -63,14 +66,42 @@ After setup, verify your database:
 
 ## Troubleshooting
 
+**Issue: "Could not find the 'password_hash' column" or similar errors**
+- **Cause**: Database was created with old schema
+- **Solution**: Drop all tables and run the updated `schema.sql`
+- **Alternative**: Manually add missing columns by comparing your tables with the current schema.sql
+
+**Issue: "column page_content.slug does not exist"**
+- **Cause**: Missing columns in page_content table
+- **Solution**: Drop the page_content table and re-run `schema.sql`, or manually add the slug column:
+  ```sql
+  ALTER TABLE public.page_content ADD COLUMN slug VARCHAR(100) UNIQUE;
+  ALTER TABLE public.page_content ADD COLUMN is_published BOOLEAN DEFAULT true;
+  ```
+
 **Issue: Can't insert data**
-- Check that RLS policies are applied correctly
-- Verify you're logged in as the correct user role
+- **Cause**: RLS policies are blocking
+- **Solution**: 
+  1. Check that RLS policies are applied correctly
+  2. Verify you're logged in as the correct user role
+  3. Try temporarily disabling RLS for testing:
+     ```sql
+     ALTER TABLE table_name DISABLE ROW LEVEL SECURITY;
+     ```
 
 **Issue: Services not showing**
-- Run seed.sql to populate sample data
-- Check that `is_active = true` for services
+- **Solution**: Run seed.sql to populate sample data
+- **Check**: Verify `is_active = true` for services
 
 **Issue: Admin can't access admin panel**
-- Verify the user's role is set to 'admin' in the users table
-- Check RLS policies allow admin access
+- **Solution**: 
+  1. Verify the user's role is set to 'admin' in the users table
+  2. Run admin.sql with your email
+  3. Logout and login again
+
+**Issue: Schema cache errors**
+- **Solution**: Refresh the schema cache in Supabase:
+  ```sql
+  NOTIFY pgrst, 'reload schema';
+  ```
+- **Alternative**: Restart your Supabase project from the dashboard

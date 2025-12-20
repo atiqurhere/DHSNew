@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS public.users (
   address TEXT,
   role VARCHAR(20) DEFAULT 'patient' CHECK (role IN ('patient', 'staff', 'admin')),
   is_verified BOOLEAN DEFAULT false,
+  password_hash TEXT DEFAULT 'managed_by_supabase_auth',
+  staff_type VARCHAR(100),
+  verification_status VARCHAR(50) DEFAULT 'approved',
+  profile_picture TEXT,
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -78,8 +82,10 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  type VARCHAR(50) DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error')),
+  type VARCHAR(50) DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error', 'welcome', 'staff_application')),
   is_read BOOLEAN DEFAULT false,
+  related_id UUID,
+  related_model VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -93,6 +99,8 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
   description TEXT NOT NULL,
   status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
   priority VARCHAR(50) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+  assigned_to UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  responses JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -114,8 +122,11 @@ CREATE TABLE IF NOT EXISTS public.ticket_messages (
 CREATE TABLE IF NOT EXISTS public.chatbot_responses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   keyword VARCHAR(255) NOT NULL,
+  keywords TEXT,
   response TEXT NOT NULL,
   category VARCHAR(100),
+  priority INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -126,7 +137,9 @@ CREATE TABLE IF NOT EXISTS public.chatbot_responses (
 CREATE TABLE IF NOT EXISTS public.page_content (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   page_name VARCHAR(100) UNIQUE NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
   content JSONB NOT NULL,
+  is_published BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -141,6 +154,32 @@ CREATE TABLE IF NOT EXISTS public.telegram_sessions (
   status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'ended')),
   started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   ended_at TIMESTAMP WITH TIME ZONE
+);
+
+-- ============================================
+-- TELEGRAM BOT CONFIG TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.telegram_bot_config (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bot_token TEXT,
+  bot_username VARCHAR(255),
+  is_active BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- TELEGRAM AGENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.telegram_agents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  telegram_user_id BIGINT NOT NULL UNIQUE,
+  telegram_username VARCHAR(255),
+  is_active BOOLEAN DEFAULT true,
+  is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================
