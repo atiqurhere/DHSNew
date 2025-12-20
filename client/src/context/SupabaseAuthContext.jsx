@@ -82,8 +82,15 @@ export const AuthProvider = ({ children }) => {
     if (isDev) console.log('🔄 AuthProvider: Initializing auth check...')
     let isInitialized = false
 
+    // Safety timeout: Force loading to false after 5 seconds
+    const loadingTimeout = setTimeout(() => {
+      console.warn('⚠️ Auth loading timeout - forcing loading to false')
+      setLoading(false)
+    }, 5000)
+
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(loadingTimeout) // Clear timeout if session check completes
       if (isDev) console.log('📋 Session check result:', session ? 'Session found' : 'No session')
       setSession(session)
       if (session?.user && !isInitialized) {
@@ -96,6 +103,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
       }
     }).catch(error => {
+      clearTimeout(loadingTimeout)
       console.error('❌ Error getting session:', error)
       setLoading(false)
     })
@@ -128,6 +136,7 @@ export const AuthProvider = ({ children }) => {
     )
 
     return () => {
+      clearTimeout(loadingTimeout)
       if (isDev) console.log('🧹 AuthProvider: Cleaning up subscription')
       subscription.unsubscribe()
     }
