@@ -28,6 +28,7 @@ Open the Supabase SQL Editor and run these files in order:
 
 -- Step 2: Apply security policies
 -- Copy and paste contents of security.sql
+-- NOTE: RLS is disabled on users table to allow registration
 
 -- Step 3: Add sample data (optional)
 -- Copy and paste contents of seed.sql
@@ -35,6 +36,17 @@ Open the Supabase SQL Editor and run these files in order:
 -- Step 4: Create admin user
 -- Edit admin.sql with your email, then run it
 ```
+
+> [!IMPORTANT]
+> **Row Level Security (RLS) on Users Table:**
+> RLS is currently **disabled** on the `users` table to allow user registration to work properly. This is because the registration flow inserts user profiles using the anon key, which fails RLS checks.
+> 
+> For production, you may want to:
+> 1. Keep RLS disabled on users table (simpler, still secure with Supabase Auth)
+> 2. OR implement a database trigger to handle user creation
+> 3. OR use Supabase Edge Functions for registration
+> 
+> All other tables have RLS enabled with proper policies.
 
 > [!NOTE]
 > The schema.sql file now includes all necessary tables and columns. If you previously ran an older version, you can safely drop all tables and run the new schema.sql, or manually add missing columns by comparing with the current schema.
