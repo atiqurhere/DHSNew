@@ -82,11 +82,11 @@ export const AuthProvider = ({ children }) => {
     if (isDev) console.log('🔄 AuthProvider: Initializing auth check...')
     let isInitialized = false
 
-    // Safety timeout: Force loading to false after 5 seconds
+    // Safety timeout: Force loading to false after 2 seconds
     const loadingTimeout = setTimeout(() => {
       console.warn('⚠️ Auth loading timeout - forcing loading to false')
       setLoading(false)
-    }, 5000)
+    }, 2000)
 
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {

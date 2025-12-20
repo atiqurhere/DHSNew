@@ -13,12 +13,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'dhs-auth-token',
-    // Don't refetch on every tab switch
-    flowType: 'pkce'
+    flowType: 'pkce',
+    // Add storage option to help with session recovery
+    storage: window.localStorage
   },
   global: {
     headers: {
       'X-Client-Info': 'dhs-healthcare'
+    }
+  },
+  // Add timeout for requests
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
     }
   }
 })
@@ -45,31 +55,41 @@ export const storage = {
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file)
-    
+
     if (error) throw error
-    
+
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(path)
-    
+
     return { path, url: publicUrl }
   },
-  
+
   delete: async (bucket, path) => {
     const { error } = await supabase.storage
       .from(bucket)
       .remove([path])
-    
+
     if (error) throw error
   },
-  
+
   getPublicUrl: (bucket, path) => {
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(path)
-    
+
     return publicUrl
   }
+}
+
+// Helper to get session with timeout
+export const getSessionWithTimeout = async (timeoutMs = 2000) => {
+  return Promise.race([
+    supabase.auth.getSession(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Session timeout')), timeoutMs)
+    )
+  ])
 }
 
 export default supabase
