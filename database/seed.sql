@@ -8,14 +8,16 @@
 -- ============================================
 INSERT INTO public.services (name, category, description, price, duration, image, is_active)
 VALUES
-  ('General Consultation', 'Consultation', 'Comprehensive health check-up and medical consultation with our experienced doctors.', 50.00, '30 mins', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500', true),
-  ('Specialist Consultation', 'Consultation', 'Consultation with specialist doctors for specific health conditions.', 100.00, '45 mins', 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=500', true),
-  ('Home Nursing Care', 'Home Care', 'Professional nursing care in the comfort of your home.', 80.00, '2 hours', 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=500', true),
-  ('Physiotherapy Session', 'Therapy', 'Expert physiotherapy for rehabilitation and pain management.', 60.00, '1 hour', 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500', true),
-  ('Blood Test at Home', 'Laboratory', 'Complete blood work done at your doorstep with results in 24 hours.', 40.00, '20 mins', 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=500', true),
-  ('Elderly Care Package', 'Home Care', 'Comprehensive care package for elderly patients including daily assistance.', 150.00, '4 hours', 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=500', true),
-  ('Mental Health Counseling', 'Consultation', 'Professional counseling services for mental health and wellness.', 75.00, '50 mins', 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500', true),
-  ('Vaccination Service', 'Preventive Care', 'All types of vaccinations administered by certified healthcare professionals.', 30.00, '15 mins', 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500', true)
+  ('Home Nursing Care', 'home-care', 'Professional nursing care in the comfort of your home.', 80.00, '2 hours', 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=500', true),
+  ('Elderly Care Package', 'home-care', 'Comprehensive care package for elderly patients including daily assistance.', 150.00, '4 hours', 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=500', true),
+  ('24/7 Nurse Care', 'nurse-care', 'Round-the-clock professional nursing care for critical patients.', 200.00, '24 hours', 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=500', true),
+  ('Post-Surgery Care', 'nurse-care', 'Specialized nursing care for post-operative recovery at home.', 120.00, '3 hours', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500', true),
+  ('Prescription Medicine Delivery', 'medicine-delivery', 'Fast and reliable delivery of prescription medications to your doorstep.', 10.00, '1 hour', 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500', true),
+  ('Emergency Medicine Supply', 'medicine-delivery', 'Urgent delivery of essential medicines within 30 minutes.', 15.00, '30 mins', 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=500', true),
+  ('General Consultation at Home', 'doctor-on-call', 'Experienced doctors visit your home for comprehensive health check-ups.', 100.00, '45 mins', 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500', true),
+  ('Specialist Doctor Visit', 'doctor-on-call', 'Specialist doctors available for home visits and consultations.', 150.00, '1 hour', 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500', true),
+  ('Wheelchair Rental', 'equipment-rental', 'High-quality wheelchairs available for daily, weekly, or monthly rental.', 20.00, 'Per day', 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=500', true),
+  ('Hospital Bed Rental', 'equipment-rental', 'Adjustable hospital beds for home care and recovery.', 30.00, 'Per day', 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=500', true)
 ON CONFLICT DO NOTHING;
 
 -- ============================================
