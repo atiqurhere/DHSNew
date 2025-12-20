@@ -29,32 +29,32 @@ export const AuthProvider = ({ children }) => {
     if (isDev) console.log('🔍 Fetching user profile from database...')
     const startTime = performance.now()
 
-    // SESSION-FIRST APPROACH: Load session immediately, then try DB
-    const currentSession = userSession || session
-
-    if (currentSession?.user) {
-      // Immediately load from session (INSTANT)
-      const sessionUser = {
-        id: currentSession.user.id,
-        email: currentSession.user.email,
-        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
-        role: currentSession.user.user_metadata?.role || 'patient',
-        phone: currentSession.user.user_metadata?.phone || '',
-        created_at: currentSession.user.created_at
-      }
-      if (isDev) console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
-      setUser(sessionUser)
-      setLoading(false)
-    } else {
-      console.error('❌ No session data available')
-      setUser(null)
-      setLoading(false)
-      setIsFetchingProfile(false)
-      return
-    }
-
-    // Then try to upgrade with database data
     try {
+      // SESSION-FIRST APPROACH: Load session immediately, then try DB
+      const currentSession = userSession || session
+
+      if (currentSession?.user) {
+        // Immediately load from session (INSTANT)
+        const sessionUser = {
+          id: currentSession.user.id,
+          email: currentSession.user.email,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+          role: currentSession.user.user_metadata?.role || 'patient',
+          phone: currentSession.user.user_metadata?.phone || '',
+          created_at: currentSession.user.created_at
+        }
+        if (isDev) console.log('✅ User loaded from session (instant):', sessionUser.name, `(${sessionUser.role})`)
+        setUser(sessionUser)
+        setLoading(false)
+      } else {
+        console.error('❌ No session data available')
+        setUser(null)
+        setLoading(false)
+        setIsFetchingProfile(false)
+        return
+      }
+
+      // Then try to upgrade with database data
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, phone, role, address, staff_type, is_verified, created_at, profile_picture')
@@ -72,9 +72,10 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (dbError) {
       console.warn('⚠️ Database error:', dbError.message, '- Continuing with session data')
+    } finally {
+      setIsFetchingProfile(false)
+      setLoading(false) // Ensure loading is always set to false
     }
-
-    setIsFetchingProfile(false)
   }
 
   useEffect(() => {
